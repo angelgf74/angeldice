@@ -183,27 +183,27 @@ var juego = {
         Sonido.unlock();
         if (juego.enDialogo > 0) return;
 
-        var ancho       = juego.ancho;
-        var alto        = juego.alto;
-        var cx          = ancho / 2;
-        var cy          = alto  / 2;
-        var cMinimo     = Math.min(cx, cy);
-        var cMinimoRedu = cMinimo * 0.75;
-        var desp        = (cMinimo - cMinimoRedu) * 0.4;
+        var W    = juego.ancho;
+        var H    = juego.alto;
+        var cx   = juego.centroX;
+        var cy   = juego.centroY;
+        var r    = juego.radio;
+        var desp = juego._desp || 0;
+        var pad  = Math.min(W, H) * 0.04;
+        var botH = pad * 3;
 
         // Botón ayuda (abajo-izquierda)
-        if (y > alto - desp * 2.5 && x < desp * 2.5) {
+        if (y > H - botH && x < botH) {
             juego.mostrarAyuda();
             return;
         }
         // Toggle audio (abajo-derecha)
-        if (y > alto - desp * 2.5 && x > ancho - desp * 2.5) {
+        if (y > H - botH && x > W - botH) {
             juego.setConAudio(!juego.conAudio);
             juego.draw(-1, 0);
             return;
         }
 
-        var r   = cMinimoRedu;
         var idx = (y < cy) ? ((x < cx) ? 2 : 3) : ((x < cx) ? 1 : 0);
         var cy2 = cy + desp * (idx < 2 ?  1 : -1);
         var cx2 = cx + desp * ((((idx & 1) === 0) ^ ((idx & 2) === 0)) ? -1 : 1);
@@ -269,35 +269,44 @@ var juego = {
             }
         }
 
-        var canvas    = document.getElementById('t1');
-        var anchoReal = window.innerWidth;
-        var altoReal  = window.innerHeight;
+        var canvas = document.getElementById('t1');
+        var W = window.innerWidth;
+        var H = window.innerHeight;
 
-        canvas.width        = anchoReal;
-        canvas.height       = altoReal;
-        canvas.style.width  = anchoReal + 'px';
-        canvas.style.height = altoReal  + 'px';
+        canvas.width        = W;
+        canvas.height       = H;
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
 
-        juego.ancho = anchoReal;
-        juego.alto  = altoReal;
+        juego.ancho = W;
+        juego.alto  = H;
 
-        var ctx   = canvas.getContext('2d');
-        var cx    = anchoReal / 2;
-        var cy    = altoReal  / 2;
-        var cMin  = Math.min(cx, cy);
-        var r     = cMin * 0.85;
-        var desp  = (cMin - r) * 0.4;
+        var ctx = canvas.getContext('2d');
+
+        // Fondo degradado
+        var bg = ctx.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, '#8ED6FF');
+        bg.addColorStop(1, '#004CB3');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Layout: reservar zona para título (arriba) e iconos (abajo)
+        var pad    = Math.min(W, H) * 0.04;
+        var titleH = pad * 3.5;
+        var botH   = pad * 3;
+        var boardH = H - titleH - botH;
+
+        var cMin = Math.min(W / 2, boardH / 2);
+        var r    = cMin * 0.88;
+        var desp = cMin * 0.07;
+
+        var cx = W / 2;
+        var cy = titleH + boardH / 2;
 
         juego.centroX = cx;
         juego.centroY = cy;
         juego.radio   = r;
-
-        // Fondo degradado
-        var bg = ctx.createLinearGradient(0, 0, anchoReal, altoReal);
-        bg.addColorStop(0, '#8ED6FF');
-        bg.addColorStop(1, '#004CB3');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, anchoReal, altoReal);
+        juego._desp   = desp;
 
         // Cuatro cuadrantes
         juego.DibArco(ctx, cx + desp, cy + desp, r, juego.SelColor(color, 0, ctx),   0,  90);
@@ -305,40 +314,109 @@ var juego = {
         juego.DibArco(ctx, cx - desp, cy - desp, r, juego.SelColor(color, 2, ctx), 180, 270);
         juego.DibArco(ctx, cx + desp, cy - desp, r, juego.SelColor(color, 3, ctx), 270, 360);
 
-        // Restablecer sombra para texto
+        // Restablecer sombra
         ctx.shadowColor   = 'transparent';
         ctx.shadowBlur    = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
 
-        var grad = ctx.createLinearGradient(0, desp, anchoReal, desp * 4);
-        grad.addColorStop(0, '#ff0000');
-        grad.addColorStop(1, '#ffff77');
+        // ── Círculo central con nivel ─────────────────────────────────────────
+        var rCen = Math.max(r * 0.20, 24);
 
-        ctx.fillStyle  = grad;
-        ctx.textAlign  = 'center';
-        ctx.font       = (desp * 6) + 'px Arial';
-        ctx.fillText('Angel Dice', cx, desp * 5);
+        ctx.beginPath();
+        ctx.arc(cx, cy, rCen, 0, Math.PI * 2);
+        var cg = ctx.createRadialGradient(cx, cy - rCen * 0.3, 2, cx, cy, rCen);
+        cg.addColorStop(0, '#1a3060');
+        cg.addColorStop(1, '#0a1830');
+        ctx.fillStyle   = cg;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur  = 10;
+        ctx.fill();
 
-        if (juego.record > 0) {
-            ctx.font = (desp * 4) + 'px Arial';
-            ctx.fillText('Record: ' + juego.record, anchoReal / 2, altoReal - 1.75 * desp);
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur  = 0;
+        ctx.strokeStyle = 'rgba(140,200,255,0.35)';
+        ctx.lineWidth   = 2;
+        ctx.stroke();
+
+        // Número de nivel
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font         = 'bold ' + Math.floor(rCen * 1.05) + 'px Arial';
+        ctx.fillStyle    = '#ffffff';
+        ctx.fillText(juego.Secuencia.length.toString(), cx, cy - rCen * 0.05);
+
+        // Arco de progreso + paso (solo durante turno del jugador)
+        if (juego.Indice >= 0 && juego.Secuencia.length > 0) {
+            var progress  = (juego.Indice + 1) / juego.Secuencia.length;
+            var arcR      = rCen + Math.max(r * 0.05, 7);
+            var lw        = Math.max(r * 0.025, 4);
+
+            // Track de fondo
+            ctx.beginPath();
+            ctx.arc(cx, cy, arcR, -Math.PI / 2, Math.PI * 1.5);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth   = lw;
+            ctx.lineCap     = 'round';
+            ctx.stroke();
+
+            // Arco completado
+            ctx.beginPath();
+            ctx.arc(cx, cy, arcR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+            ctx.strokeStyle = 'rgba(100,200,255,0.90)';
+            ctx.stroke();
+            ctx.lineCap = 'butt';
+
+            // Texto del paso debajo del número
+            ctx.font      = 'bold ' + Math.floor(rCen * 0.38) + 'px Arial';
+            ctx.fillStyle = 'rgba(160,215,255,0.85)';
+            ctx.fillText((juego.Indice + 1) + ' / ' + juego.Secuencia.length,
+                         cx, cy + rCen * 0.62);
         }
 
-        ctx.font = (desp * 1.5) + 'px Arial';
-        ctx.fillText(juego.Secuencia.length.toString(),  cx + desp + r / 2, cy + 7);
-        ctx.fillText((juego.Indice + 1).toString(),      cx - desp - r / 2, cy + 7);
+        // ── Título ────────────────────────────────────────────────────────────
+        ctx.textBaseline  = 'middle';
+        ctx.textAlign     = 'center';
+        var titleFontSize = Math.min(titleH * 0.62, 52);
+        ctx.font          = 'bold ' + titleFontSize + 'px Arial';
 
-        // Iconos de ayuda y audio
-        ctx.font       = (desp * 2.8) + 'px Arial';
-        ctx.fillStyle  = 'rgba(255,255,255,0.85)';
-        ctx.textAlign  = 'right';
-        ctx.fillText(juego.conAudio ? '🔔' : '🔕',
-            anchoReal - 0.5 * desp, altoReal - 0.5 * desp);
+        ctx.shadowColor   = 'rgba(0,40,140,0.85)';
+        ctx.shadowBlur    = 14;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
 
-        ctx.textAlign  = 'left';
-        ctx.fillStyle  = 'rgba(255,255,160,0.9)';
-        ctx.fillText('❓', 0.5 * desp, altoReal - 0.5 * desp);
+        var tGrad = ctx.createLinearGradient(cx - titleFontSize * 2.5, 0, cx + titleFontSize * 2.5, 0);
+        tGrad.addColorStop(0, '#ff4444');
+        tGrad.addColorStop(1, '#ffee44');
+        ctx.fillStyle = tGrad;
+        ctx.fillText('Angel Dice', cx, titleH / 2);
+
+        ctx.shadowColor   = 'transparent';
+        ctx.shadowBlur    = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // ── Barra inferior ────────────────────────────────────────────────────
+        var botY     = H - botH / 2;
+        var iconSize = Math.min(botH * 0.75, 34);
+
+        if (juego.record > 0) {
+            ctx.font      = Math.floor(botH * 0.30) + 'px Arial';
+            ctx.fillStyle = 'rgba(255,230,100,0.9)';
+            ctx.textAlign = 'center';
+            ctx.fillText('Record: ' + juego.record, cx, botY);
+        }
+
+        ctx.font      = iconSize + 'px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillText(juego.conAudio ? '🔔' : '🔕', W - pad * 0.4, botY);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,160,0.9)';
+        ctx.fillText('❓', pad * 0.4, botY);
+
+        ctx.textBaseline = 'alphabetic';
     },
 
     SelColor: function (colSecuencia, colPosicion, ctx) {
