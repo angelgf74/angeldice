@@ -58,6 +58,42 @@ var Modal = {
     }
 };
 
+// ─── Audio (Web Audio API) ───────────────────────────────────────────────────
+
+var Sonido = {
+    ctx: null,
+    buffers: [],
+
+    init: function () {
+        try {
+            Sonido.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) { return; }
+        for (var i = 0; i < 6; i++) {
+            (function (idx) {
+                fetch('audio/n' + idx + '.ogg')
+                    .then(function (r) { return r.arrayBuffer(); })
+                    .then(function (buf) { return Sonido.ctx.decodeAudioData(buf); })
+                    .then(function (decoded) { Sonido.buffers[idx] = decoded; })
+                    .catch(function () {});
+            })(i);
+        }
+    },
+
+    unlock: function () {
+        if (Sonido.ctx && Sonido.ctx.state === 'suspended') {
+            Sonido.ctx.resume();
+        }
+    },
+
+    play: function (id) {
+        if (!juego.conAudio || !Sonido.ctx || !Sonido.buffers[id]) return;
+        var src = Sonido.ctx.createBufferSource();
+        src.buffer = Sonido.buffers[id];
+        src.connect(Sonido.ctx.destination);
+        src.start(0);
+    }
+};
+
 // ─── Game ────────────────────────────────────────────────────────────────────
 
 var juego = {
@@ -83,13 +119,14 @@ var juego = {
     pasosEncendido: 8,
     pasosApagado: 2,
 
-    audios: [],
     record: 0,
 
     inicializar: function () {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
+
+        Sonido.init();
 
         juego.conAudio       = localStorage.getItem('conaudio') === 'true';
         var savedAyuda       = localStorage.getItem('ayudaaliniciar');
@@ -143,6 +180,7 @@ var juego = {
     },
 
     handleClick: function (x, y) {
+        Sonido.unlock();
         if (juego.enDialogo > 0) return;
 
         var ancho       = juego.ancho;
@@ -344,11 +382,7 @@ var juego = {
     play: function (id) {
         if (!juego.conAudio) return;
         if (id === -2) id = 4;
-        if (!juego.audios[id]) {
-            juego.audios[id] = new Audio('audio/n' + id + '.ogg');
-        }
-        juego.audios[id].currentTime = 0;
-        juego.audios[id].play().catch(function () {});
+        Sonido.play(id);
     },
 
     iniciarSecuencia: function (primera) {
