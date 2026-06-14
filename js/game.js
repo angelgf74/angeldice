@@ -218,6 +218,12 @@ var juego = {
             return;
         }
 
+        // Récord (centro-inferior)
+        if (!juego._installPrompt && juego.record > 0 && y > H - botH && x > botH && x < W - botH) {
+            juego.mostrarRecord();
+            return;
+        }
+
         // Instalar PWA (centro-inferior)
         if (juego._installPrompt && y > H - botH && x > botH && x < W - botH) {
             var p = juego._installPrompt;
@@ -236,6 +242,20 @@ var juego = {
         if (juego.distancia(x, y, cx2, cy2) <= r) {
             juego.toque(idx);
         }
+    },
+
+    mostrarRecord: function () {
+        Modal.show({
+            title: '🏆 Récord',
+            content: [
+                '<div style="text-align:center;padding:12px 0">',
+                '<p style="font-size:4rem;font-weight:bold;line-height:1;color:#004CB3;margin:0 0 10px">',
+                juego.record + '</p>',
+                '<p style="color:#555;margin:0">nivel más alto alcanzado</p>',
+                '</div>'
+            ].join(''),
+            buttons: { Cerrar: function () {} }
+        });
     },
 
     mostrarAyuda: function (alCerrar) {
@@ -258,6 +278,7 @@ var juego = {
                 '<p><strong>Barra inferior</strong></p>',
                 '<ul>',
                 '<li><b>❓</b> — muestra esta ayuda.</li>',
+                '<li><b>🏆 número</b> — récord actual. Tócalo para verlo en detalle.</li>',
                 '<li><b>🔔&nbsp;/&nbsp;🔕</b> — activa o desactiva el sonido.</li>',
                 '</ul>',
                 '<br><small>Desarrollado por Ángel Galán Fernández</small>'
@@ -449,7 +470,7 @@ var juego = {
             ctx.font      = Math.floor(botH * 0.30) + 'px Arial';
             ctx.fillStyle = 'rgba(255,230,100,0.9)';
             ctx.textAlign = 'center';
-            ctx.fillText('Record: ' + juego.record, cx, botY);
+            ctx.fillText('🏆 ' + juego.record, cx, botY);
         }
 
         ctx.font      = iconSize + 'px Arial';
