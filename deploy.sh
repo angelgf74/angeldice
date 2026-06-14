@@ -22,7 +22,6 @@ scp -r \
     favicon.svg \
     css \
     js \
-    audio \
     icons \
     "$SSH_HOST:$REMOTE_DIR/"
 

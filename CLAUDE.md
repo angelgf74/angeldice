@@ -27,7 +27,7 @@ bash deploy.sh
 
 Copia los archivos al servidor `agfserver-angel` vía SCP y recarga nginx. Requiere acceso SSH configurado con ese alias en `~/.ssh/config`.
 
-**Importante al desplegar cambios en JS/CSS/audio:** incrementar la versión de caché en `sw.js` (línea 1, constante `CACHE = 'angeldice-v1'`) para que los clientes descarten la caché anterior y descarguen los nuevos archivos.
+**La versión de caché se actualiza automáticamente** al ejecutar `deploy.sh` (mediante `sed` sobre `sw.js`). Solo es necesario hacerlo a mano si se despliega por otro medio.
 
 ## Arquitectura
 
@@ -35,7 +35,7 @@ Todo el juego vive en `js/game.js` con tres objetos globales:
 
 - **`Modal`** — sistema de diálogos: `Modal.show(options)` / `Modal.hide()`. Soporta `autoClose: 'btnKey|ms'` para cierre automático. Incrementa/decrementa `juego.enDialogo` para bloquear los toques mientras hay un diálogo abierto.
 
-- **`Sonido`** — audio vía Web Audio API. Carga `audio/n0.ogg`–`audio/n5.ogg` (0–3 = cuatro colores, 4 = acierto total de secuencia, 5 = fallo). Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles.
+- **`Sonido`** — sintetiza audio mediante la Web Audio API (sin ficheros externos). `play(id)`: 0–3 = tono sinusoidal por color (392/330/262/220 Hz), 4 = arpeggio ascendente de 4 notas, 5 = barrido sawtooth descendente de fallo. Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles.
 
 - **`juego`** — lógica completa del juego. El canvas `#t1` ocupa toda la pantalla; `juego.draw(color, paso)` redibuja todo en cada frame. Los cuatro cuadrantes (azul=0, amarillo=1, verde=2, rojo=3) se mapean a sectores del arco: `idx = (y < cy) ? ((x < cx) ? 2 : 3) : ((x < cx) ? 1 : 0)`.
 

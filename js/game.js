@@ -62,21 +62,11 @@ var Modal = {
 
 var Sonido = {
     ctx: null,
-    buffers: [],
 
     init: function () {
         try {
             Sonido.ctx = new (window.AudioContext || window.webkitAudioContext)();
         } catch (e) { return; }
-        for (var i = 0; i < 6; i++) {
-            (function (idx) {
-                fetch('audio/n' + idx + '.ogg')
-                    .then(function (r) { return r.arrayBuffer(); })
-                    .then(function (buf) { return Sonido.ctx.decodeAudioData(buf); })
-                    .then(function (decoded) { Sonido.buffers[idx] = decoded; })
-                    .catch(function () {});
-            })(i);
-        }
     },
 
     unlock: function () {
@@ -85,12 +75,52 @@ var Sonido = {
         }
     },
 
+    // id 0-3: colores (azul/amarillo/verde/rojo); 4: acierto; 5: fallo
     play: function (id) {
-        if (!juego.conAudio || !Sonido.ctx || !Sonido.buffers[id]) return;
-        var src = Sonido.ctx.createBufferSource();
-        src.buffer = Sonido.buffers[id];
-        src.connect(Sonido.ctx.destination);
-        src.start(0);
+        if (!juego.conAudio || !Sonido.ctx) return;
+        var freqs = [392, 330, 262, 220]; // G4 E4 C4 A3
+        if (id < 4) {
+            Sonido._tono(freqs[id], 0.45, 'sine', 0);
+        } else if (id === 4) {
+            Sonido._tono(262, 0.12, 'sine', 0.00);
+            Sonido._tono(330, 0.12, 'sine', 0.12);
+            Sonido._tono(392, 0.12, 'sine', 0.24);
+            Sonido._tono(523, 0.30, 'sine', 0.36);
+        } else {
+            Sonido._fallo();
+        }
+    },
+
+    _tono: function (freq, dur, tipo, retardo) {
+        var ctx  = Sonido.ctx;
+        var osc  = ctx.createOscillator();
+        var gain = ctx.createGain();
+        var t0   = ctx.currentTime + retardo;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = tipo;
+        osc.frequency.setValueAtTime(freq, t0);
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(0.45, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.05);
+    },
+
+    _fallo: function () {
+        var ctx  = Sonido.ctx;
+        var osc  = ctx.createOscillator();
+        var gain = ctx.createGain();
+        var t0   = ctx.currentTime;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, t0);
+        osc.frequency.exponentialRampToValueAtTime(60, t0 + 0.5);
+        gain.gain.setValueAtTime(0.5, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
+        osc.start(t0);
+        osc.stop(t0 + 0.55);
     }
 };
 

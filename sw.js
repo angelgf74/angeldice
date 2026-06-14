@@ -1,4 +1,4 @@
-const CACHE = 'angeldice-v1';
+const CACHE = 'angeldice-20260614-132152';
 const PRECACHE = [
     './',
     './index.html',
@@ -6,12 +6,6 @@ const PRECACHE = [
     './favicon.svg',
     './css/app.css',
     './js/game.js',
-    './audio/n0.ogg',
-    './audio/n1.ogg',
-    './audio/n2.ogg',
-    './audio/n3.ogg',
-    './audio/n4.ogg',
-    './audio/n5.ogg',
     './icons/icon-192.png',
     './icons/icon-512.png'
 ];
