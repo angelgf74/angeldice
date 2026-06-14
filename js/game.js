@@ -624,6 +624,24 @@ var juego = {
         Sonido.play(id);
     },
 
+    demoCuadrantes: function (callback) {
+        var N = juego.numCuadrantes;
+        var i = 0;
+        function paso() {
+            if (i >= N) {
+                juego.draw(-1, 1);
+                if (callback) callback();
+                return;
+            }
+            juego.draw(i, 0);
+            setTimeout(function () {
+                juego.draw(-1, 1);
+                setTimeout(function () { i++; paso(); }, 100);
+            }, 400);
+        }
+        paso();
+    },
+
     iniciarSecuencia: function (primera) {
         juego.Secuencia = [juego.Random3()];
         juego.Indice    = -1;
@@ -634,7 +652,9 @@ var juego = {
             buttons: {
                 Aceptar: {
                     action: function () {
-                        juego.reproducirSecuencia();
+                        juego.demoCuadrantes(function () {
+                            juego.reproducirSecuencia();
+                        });
                     },
                     btnClass: 'btn-green'
                 }
