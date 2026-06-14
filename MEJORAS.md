@@ -33,7 +33,7 @@
 
 ## Técnico / Infraestructura
 
-- [ ] **Versión de caché automática en deploy** — añadir en `deploy.sh` un paso que actualice la constante `CACHE` en `sw.js` con la fecha/hora del despliegue, eliminando el paso manual propenso a errores.
-- [ ] **HTTPS en servidor** — añadir soporte Let's Encrypt (Certbot) al script de despliegue o a la configuración nginx para servir bajo HTTPS y garantizar que el Service Worker funcione desde cualquier dominio.
-- [ ] **Meta `og:` y Twitter Card** — añadir etiquetas Open Graph en `index.html` para que al compartir el enlace se muestre una vista previa correcta.
-- [ ] **Favicon SVG** — añadir un `favicon.svg` escalable para navegadores modernos, en lugar de depender solo de los PNG de 192 px.
+- [x] **Versión de caché automática en deploy** — añadir en `deploy.sh` un paso que actualice la constante `CACHE` en `sw.js` con la fecha/hora del despliegue, eliminando el paso manual propenso a errores.
+- [x] **HTTPS en servidor** — ya resuelto en el servidor.
+- [x] **Meta `og:` y Twitter Card** — añadir etiquetas Open Graph en `index.html` para que al compartir el enlace se muestre una vista previa correcta.
+- [x] **Favicon SVG** — añadir un `favicon.svg` escalable para navegadores modernos, en lugar de depender solo de los PNG de 192 px.

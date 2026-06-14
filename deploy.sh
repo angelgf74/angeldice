@@ -6,6 +6,11 @@ set -e
 SSH_HOST="agfserver-angel"
 REMOTE_DIR="/apps/angeldice"
 
+echo "==> Actualizando versión de caché del Service Worker..."
+VERSION="angeldice-$(date +%Y%m%d-%H%M%S)"
+sed -i "s/const CACHE = '[^']*'/const CACHE = '$VERSION'/" sw.js
+echo "    Versión: $VERSION"
+
 echo "==> Creando directorio remoto..."
 ssh "$SSH_HOST" "mkdir -p $REMOTE_DIR"
 
@@ -14,6 +19,7 @@ scp -r \
     index.html \
     manifest.json \
     sw.js \
+    favicon.svg \
     css \
     js \
     audio \
