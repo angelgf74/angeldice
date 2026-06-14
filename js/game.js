@@ -25,6 +25,7 @@ var Modal = {
             if (cfg && cfg.btnClass) btn.classList.add(cfg.btnClass);
             btn.addEventListener('click', function () {
                 Modal.hide();
+                Sonido.unlock();
                 var action = typeof cfg === 'function' ? cfg : (cfg && cfg.action);
                 if (action) action();
             });
@@ -78,6 +79,10 @@ var Sonido = {
     // id 0-7: colores; 8: acierto; 9: fallo
     play: function (id) {
         if (!juego.conAudio || !Sonido.ctx) return;
+        if (Sonido.ctx.state === 'suspended') {
+            Sonido.ctx.resume().then(function () { Sonido.play(id); });
+            return;
+        }
         //          Azul  Amar  Verde Rojo  Nara  Cian  Rosa  Mord
         var freqs = [392,  330,  262,  220,  494,  165,  440,  131];
         if (id < 8) {
@@ -96,7 +101,7 @@ var Sonido = {
         var ctx  = Sonido.ctx;
         var osc  = ctx.createOscillator();
         var gain = ctx.createGain();
-        var t0   = ctx.currentTime + retardo;
+        var t0   = ctx.currentTime + retardo + 0.05;
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = tipo;
@@ -112,7 +117,7 @@ var Sonido = {
         var ctx  = Sonido.ctx;
         var osc  = ctx.createOscillator();
         var gain = ctx.createGain();
-        var t0   = ctx.currentTime;
+        var t0   = ctx.currentTime + 0.05;
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sawtooth';
