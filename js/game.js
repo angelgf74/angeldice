@@ -83,10 +83,10 @@ var Sonido = {
             Sonido.ctx.resume().then(function () { Sonido.play(id); });
             return;
         }
-        //          Azul  Amar  Verde Rojo  Nara  Cian  Rosa  Mord
-        var freqs = [392,  330,  262,  220,  494,  165,  440,  131];
+
+        var freq = idx => 392 + 62 * idx; // 330+62* (idx+1);
         if (id < 8) {
-            Sonido._tono(freqs[id], 0.45, 'sine', 0);
+            Sonido._tono(freq(id), 0.45, 'sine', 0);
         } else if (id === 8) {
             Sonido._tono(262, 0.12, 'sine', 0.00);
             Sonido._tono(330, 0.12, 'sine', 0.12);
