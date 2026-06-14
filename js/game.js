@@ -121,6 +121,10 @@ var juego = {
 
     record: 0,
 
+    _installPrompt: null,
+    _audioLabel: '',
+    _audioLabelTimer: null,
+
     inicializar: function () {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
@@ -169,14 +173,24 @@ var juego = {
             juego.draw(-1, 0);
         });
 
-        setTimeout(function () { juego.draw(-1, 0); }, 100);
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            juego._installPrompt = e;
+        });
+        window.addEventListener('appinstalled', function () {
+            juego._installPrompt = null;
+        });
 
-        if (juego.ayudaAlIniciar) {
-            localStorage.setItem('ayudaaliniciar', 'false');
-            juego.mostrarAyuda(function () { juego.iniciarSecuencia(true); });
-        } else {
-            juego.iniciarSecuencia(true);
-        }
+        setTimeout(function () {
+            juego.mostrarSplash(function () {
+                if (juego.ayudaAlIniciar) {
+                    localStorage.setItem('ayudaaliniciar', 'false');
+                    juego.mostrarAyuda(function () { juego.iniciarSecuencia(true); });
+                } else {
+                    juego.iniciarSecuencia(true);
+                }
+            });
+        }, 100);
     },
 
     handleClick: function (x, y) {
@@ -201,6 +215,17 @@ var juego = {
         if (y > H - botH && x > W - botH) {
             juego.setConAudio(!juego.conAudio);
             juego.draw(-1, 0);
+            return;
+        }
+
+        // Instalar PWA (centro-inferior)
+        if (juego._installPrompt && y > H - botH && x > botH && x < W - botH) {
+            var p = juego._installPrompt;
+            p.prompt();
+            p.userChoice.then(function () {
+                juego._installPrompt = null;
+                juego.draw(-1, 0);
+            });
             return;
         }
 
@@ -240,6 +265,13 @@ var juego = {
     setConAudio: function (valor) {
         juego.conAudio = valor;
         localStorage.setItem('conaudio', valor);
+        juego._audioLabel = valor ? 'Sonido ON' : 'Sonido OFF';
+        if (juego._audioLabelTimer) clearTimeout(juego._audioLabelTimer);
+        juego._audioLabelTimer = setTimeout(function () {
+            juego._audioLabel = '';
+            juego._audioLabelTimer = null;
+            juego.draw(-1, 0);
+        }, 2000);
     },
 
     distancia: function (x1, y1, x2, y2) {
@@ -400,7 +432,12 @@ var juego = {
         var botY     = H - botH / 2;
         var iconSize = Math.min(botH * 0.75, 34);
 
-        if (juego.record > 0) {
+        if (juego._installPrompt) {
+            ctx.font      = Math.floor(botH * 0.30) + 'px Arial';
+            ctx.fillStyle = 'rgba(200,240,255,0.95)';
+            ctx.textAlign = 'center';
+            ctx.fillText('⬇ Instalar', cx, botY);
+        } else if (juego.record > 0) {
             ctx.font      = Math.floor(botH * 0.30) + 'px Arial';
             ctx.fillStyle = 'rgba(255,230,100,0.9)';
             ctx.textAlign = 'center';
@@ -411,6 +448,13 @@ var juego = {
         ctx.textAlign = 'right';
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.fillText(juego.conAudio ? '🔔' : '🔕', W - pad * 0.4, botY);
+
+        if (juego._audioLabel) {
+            ctx.font      = Math.floor(botH * 0.28) + 'px Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.textAlign = 'right';
+            ctx.fillText(juego._audioLabel, W - pad * 0.4 - iconSize * 1.3, botY);
+        }
 
         ctx.textAlign = 'left';
         ctx.fillStyle = 'rgba(255,255,160,0.9)';
@@ -491,10 +535,11 @@ var juego = {
         if (correcto) {
             if (juego.Indice + 1 >= juego.Secuencia.length) {
                 setTimeout(function () {
-                    juego.draw(-2, 0);
                     juego.Secuencia.push(juego.Random3());
                     juego.Indice = -1;
-                    juego.reproducirSecuencia();
+                    juego.animarAcierto(function () {
+                        juego.reproducirSecuencia();
+                    });
                 }, 1000);
             } else {
                 setTimeout(function () { juego.draw(-1, 0); }, 1000);
@@ -506,24 +551,154 @@ var juego = {
                 localStorage.setItem('record', juego.record);
             }
             juego.play(5);
+            var reiniciar = function () {
+                var f = function () {
+                    if (juego.pausa) { setTimeout(f, 100); }
+                    else             { juego.iniciarSecuencia(false); }
+                };
+                setTimeout(f, 750);
+            };
+            var btns = { Aceptar: reiniciar };
+            if (navigator.share) {
+                btns = {
+                    Compartir: {
+                        btnClass: 'btn-share',
+                        action: function () {
+                            navigator.share({
+                                title: 'Angel Dice',
+                                text: '¡He llegado al nivel ' + (nivel - 1) + ' en Angel Dice! ¿Puedes superarme?',
+                                url: window.location.href
+                            }).catch(function () {});
+                            reiniciar();
+                        }
+                    },
+                    Aceptar: reiniciar
+                };
+            }
             Modal.show({
                 title: '😵 Perdiste',
                 content: 'Perdiste en el <b>nivel ' + nivel + '</b>',
-                buttons: {
-                    Aceptar: function () {
-                        var f = function () {
-                            if (juego.pausa) { setTimeout(f, 100); }
-                            else             { juego.iniciarSecuencia(false); }
-                        };
-                        setTimeout(f, 750);
-                    }
-                }
+                buttons: btns
             });
         }
     },
 
     Random3: function () {
         return Math.floor(Math.random() * 4);
+    },
+
+    mostrarSplash: function (callback) {
+        var canvas = document.getElementById('t1');
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        canvas.width        = W;
+        canvas.height       = H;
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
+
+        juego.ancho   = W;
+        juego.alto    = H;
+        juego.centroX = W / 2;
+        juego.centroY = H / 2;
+
+        var ctx = canvas.getContext('2d');
+        var bg  = ctx.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, '#8ED6FF');
+        bg.addColorStop(1, '#004CB3');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        var cx   = W / 2;
+        var cy   = H * 0.42;
+        var r    = Math.min(W, H) * 0.28;
+        var desp = r * 0.07;
+        var ang  = [[0, 90], [90, 180], [180, 270], [270, 360]];
+        var off  = [[desp, desp], [-desp, desp], [-desp, -desp], [desp, -desp]];
+
+        juego.colores2.forEach(function (col, i) {
+            var g = ctx.createRadialGradient(cx, cy, 10, cx, cy, r * 1.2);
+            g.addColorStop(0, '#cccccc');
+            g.addColorStop(1, col);
+            ctx.beginPath();
+            ctx.fillStyle     = g;
+            ctx.shadowColor   = 'rgba(10,10,10,0.6)';
+            ctx.shadowBlur    = 10;
+            ctx.shadowOffsetX = 10;
+            ctx.shadowOffsetY = 10;
+            ctx.moveTo(cx + off[i][0], cy + off[i][1]);
+            ctx.ellipse(cx + off[i][0], cy + off[i][1], r, r, 0,
+                ang[i][0] * Math.PI / 180, ang[i][1] * Math.PI / 180, false);
+            ctx.closePath();
+            ctx.fill();
+        });
+
+        ctx.shadowColor   = 'transparent';
+        ctx.shadowBlur    = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        var titleSize = Math.min(W * 0.12, 58);
+        ctx.font         = 'bold ' + titleSize + 'px Arial';
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor   = 'rgba(0,40,140,0.85)';
+        ctx.shadowBlur    = 14;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        var tg = ctx.createLinearGradient(cx - titleSize * 2.5, 0, cx + titleSize * 2.5, 0);
+        tg.addColorStop(0, '#ff4444');
+        tg.addColorStop(1, '#ffee44');
+        ctx.fillStyle = tg;
+        ctx.fillText('Angel Dice', cx, cy + r * 1.25);
+
+        ctx.shadowColor   = 'transparent';
+        ctx.shadowBlur    = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.font      = Math.floor(titleSize * 0.38) + 'px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.fillText('Juego de memoria', cx, cy + r * 1.62);
+
+        setTimeout(callback, 1400);
+    },
+
+    animarAcierto: function (callback) {
+        juego.draw(-2, 0);
+        var canvas = document.getElementById('t1');
+        var ctx    = canvas.getContext('2d');
+        var cx     = juego.centroX;
+        var cy     = juego.centroY;
+        var r      = juego.radio;
+        var start  = null;
+        var dur    = 700;
+
+        function paso(ts) {
+            if (!start) start = ts;
+            var p = Math.min((ts - start) / dur, 1);
+
+            juego.draw(-2, 1);
+
+            for (var i = 0; i < 3; i++) {
+                var pi    = (p + i / 3) % 1;
+                var rr    = r * 0.1 + r * 1.1 * pi;
+                var alpha = (1 - pi) * 0.75;
+                ctx.beginPath();
+                ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255,255,255,' + alpha.toFixed(2) + ')';
+                ctx.lineWidth   = Math.max(3, r * 0.04);
+                ctx.lineCap     = 'butt';
+                ctx.stroke();
+            }
+
+            if (p < 1) {
+                requestAnimationFrame(paso);
+            } else {
+                if (callback) callback();
+            }
+        }
+
+        requestAnimationFrame(paso);
     }
 };
 
