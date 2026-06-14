@@ -75,13 +75,14 @@ var Sonido = {
         }
     },
 
-    // id 0-3: colores (azul/amarillo/verde/rojo); 4: acierto; 5: fallo
+    // id 0-7: colores; 8: acierto; 9: fallo
     play: function (id) {
         if (!juego.conAudio || !Sonido.ctx) return;
-        var freqs = [392, 330, 262, 220]; // G4 E4 C4 A3
-        if (id < 4) {
+        //          Azul  Amar  Verde Rojo  Nara  Cian  Rosa  Mord
+        var freqs = [392,  330,  262,  220,  494,  165,  440,  131];
+        if (id < 8) {
             Sonido._tono(freqs[id], 0.45, 'sine', 0);
-        } else if (id === 4) {
+        } else if (id === 8) {
             Sonido._tono(262, 0.12, 'sine', 0.00);
             Sonido._tono(330, 0.12, 'sine', 0.12);
             Sonido._tono(392, 0.12, 'sine', 0.24);
@@ -127,8 +128,10 @@ var Sonido = {
 // ─── Game ────────────────────────────────────────────────────────────────────
 
 var juego = {
-    //            Azul       Amarillo   Verde      Rojo
-    colores2: ['#7777FF', '#FFFF77', '#338833', '#FF3333'],
+    //            Azul      Amarillo  Verde     Rojo      Naranja   Cian      Rosa      Morado
+    colores2: ['#7777FF', '#FFFF77', '#338833', '#FF3333', '#FF8833', '#33BBBB', '#FF66BB', '#9933FF'],
+
+    numCuadrantes: 4,
 
     Secuencia: [],
     ReproduciendoSecuencia: false,
@@ -162,9 +165,10 @@ var juego = {
 
         Sonido.init();
 
-        juego.conAudio       = localStorage.getItem('conaudio') === 'true';
-        var savedAyuda       = localStorage.getItem('ayudaaliniciar');
-        juego.record         = parseInt(localStorage.getItem('record'), 10) || 0;
+        juego.conAudio        = localStorage.getItem('conaudio') === 'true';
+        var savedAyuda        = localStorage.getItem('ayudaaliniciar');
+        juego.record          = parseInt(localStorage.getItem('record'), 10) || 0;
+        juego.numCuadrantes   = Math.max(3, Math.min(8, parseInt(localStorage.getItem('numcuadrantes'), 10) || 4));
 
         if (savedAyuda === null) {
             juego.ayudaAlIniciar = true;
@@ -241,6 +245,11 @@ var juego = {
             juego.mostrarAyuda();
             return;
         }
+        // Botón configuración (abajo-izquierda, segundo)
+        if (y > H - botH && x >= botH && x < botH * 2) {
+            juego.mostrarConfiguracion();
+            return;
+        }
         // Toggle audio (abajo-derecha)
         if (y > H - botH && x > W - botH) {
             juego.setConAudio(!juego.conAudio);
@@ -265,13 +274,45 @@ var juego = {
             return;
         }
 
-        var idx = (y < cy) ? ((x < cx) ? 2 : 3) : ((x < cx) ? 1 : 0);
-        var cy2 = cy + desp * (idx < 2 ?  1 : -1);
-        var cx2 = cx + desp * ((((idx & 1) === 0) ^ ((idx & 2) === 0)) ? -1 : 1);
+        var N    = juego.numCuadrantes;
+        var ang  = Math.atan2(y - cy, x - cx) * 180 / Math.PI;
+        var norm = (ang + 90 + 360) % 360;
+        var idx  = Math.floor(norm / (360 / N));
+        var a0   = -90 + idx * (360 / N);
+        var am   = (a0 + (360 / N) / 2) * Math.PI / 180;
+        var cx2  = cx + desp * Math.cos(am);
+        var cy2  = cy + desp * Math.sin(am);
 
         if (juego.distancia(x, y, cx2, cy2) <= r) {
             juego.toque(idx);
         }
+    },
+
+    mostrarConfiguracion: function () {
+        var sel = juego.numCuadrantes;
+        var html = [
+            '<p style="margin-bottom:12px">Número de cuadrantes por partida:</p>',
+            '<div id="nq-sel" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'
+        ];
+        for (var n = 3; n <= 8; n++) {
+            html.push('<button class="nq-btn' + (n === sel ? ' nq-active' : '') + '" data-n="' + n + '">' + n + '</button>');
+        }
+        html.push('</div>');
+        html.push('<p style="margin-top:10px;color:#666;font-size:0.82rem;text-align:center">Se aplica en la siguiente partida.</p>');
+        Modal.show({
+            title: '⚙️ Configuración',
+            content: html.join(''),
+            buttons: { Cerrar: function () {} }
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (btn) {
+            btn.addEventListener('click', function () {
+                var n = parseInt(this.getAttribute('data-n'), 10);
+                juego.setNumCuadrantes(n);
+                Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (b) {
+                    b.classList.toggle('nq-active', parseInt(b.getAttribute('data-n'), 10) === n);
+                });
+            });
+        });
     },
 
     mostrarRecord: function () {
@@ -308,6 +349,7 @@ var juego = {
                 '<p><strong>Barra inferior</strong></p>',
                 '<ul>',
                 '<li><b>❓</b> — muestra esta ayuda.</li>',
+                '<li><b>⚙️</b> — elige cuántos cuadrantes usar (3–8).</li>',
                 '<li><b>🏆 número</b> — récord actual. Tócalo para verlo en detalle.</li>',
                 '<li><b>🔔&nbsp;/&nbsp;🔕</b> — activa o desactiva el sonido.</li>',
                 '</ul>',
@@ -319,6 +361,12 @@ var juego = {
                 }
             }
         });
+    },
+
+    setNumCuadrantes: function (n) {
+        juego.numCuadrantes = n;
+        localStorage.setItem('numcuadrantes', n);
+        juego.draw(-1, 0);
     },
 
     setConAudio: function (valor) {
@@ -399,11 +447,14 @@ var juego = {
         juego.radio   = r;
         juego._desp   = desp;
 
-        // Cuatro cuadrantes
-        juego.DibArco(ctx, cx + desp, cy + desp, r, juego.SelColor(color, 0, ctx),   0,  90);
-        juego.DibArco(ctx, cx - desp, cy + desp, r, juego.SelColor(color, 1, ctx),  90, 180);
-        juego.DibArco(ctx, cx - desp, cy - desp, r, juego.SelColor(color, 2, ctx), 180, 270);
-        juego.DibArco(ctx, cx + desp, cy - desp, r, juego.SelColor(color, 3, ctx), 270, 360);
+        var N = juego.numCuadrantes;
+        var angPer = 360 / N;
+        for (var qi = 0; qi < N; qi++) {
+            var a0  = -90 + qi * angPer;
+            var am  = (a0 + angPer / 2) * Math.PI / 180;
+            juego.DibArco(ctx, cx + desp * Math.cos(am), cy + desp * Math.sin(am), r,
+                juego.SelColor(color, qi, ctx), a0, a0 + angPer);
+        }
 
         // Restablecer sombra
         ctx.shadowColor   = 'transparent';
@@ -518,6 +569,8 @@ var juego = {
         ctx.textAlign = 'left';
         ctx.fillStyle = 'rgba(255,255,160,0.9)';
         ctx.fillText('❓', pad * 0.4, botY);
+        ctx.fillStyle = 'rgba(200,220,255,0.85)';
+        ctx.fillText('⚙️', pad * 0.4 + iconSize * 1.4, botY);
 
         ctx.textBaseline = 'alphabetic';
     },
@@ -562,7 +615,7 @@ var juego = {
 
     play: function (id) {
         if (!juego.conAudio) return;
-        if (id === -2) id = 4;
+        if (id === -2) id = 8;
         Sonido.play(id);
     },
 
@@ -609,7 +662,7 @@ var juego = {
                 juego.record = nivel - 1;
                 localStorage.setItem('record', juego.record);
             }
-            juego.play(5);
+            juego.play(9);
             var reiniciar = function () {
                 var f = function () {
                     if (juego.pausa) { setTimeout(f, 100); }
@@ -643,7 +696,7 @@ var juego = {
     },
 
     Random3: function () {
-        return Math.floor(Math.random() * 4);
+        return Math.floor(Math.random() * juego.numCuadrantes);
     },
 
     mostrarSplash: function (callback) {

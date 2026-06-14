@@ -147,3 +147,33 @@ html, body {
 .modal-btn.btn-share:active {
     background: #1976d2;
 }
+
+.nq-btn {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #555;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: #e0e0e0;
+    color: #222;
+    touch-action: manipulation;
+    transition: background 0.1s;
+}
+
+.nq-btn:hover,
+.nq-btn:active {
+    background: #c8c8c8;
+}
+
+.nq-btn.nq-active {
+    background: #004CB3;
+    color: #fff;
+    border-color: #003080;
+}
+
+.nq-btn.nq-active:hover,
+.nq-btn.nq-active:active {
+    background: #1565c0;
+}
