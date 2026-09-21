@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="es.angelgf.angeldice" version="1.1.9" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>AngelDice</name>
+    <description>Angel Dice. Repite la secuencia de colores.</description>
+    <author email="angelgf@gmail.com" href="">Angel Galan Fernandez</author>
+    <content src="index.html" />
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <allow-intent href="tel:*" />
+    <allow-intent href="sms:*" />
+    <allow-intent href="mailto:*" />
+    <allow-intent href="geo:*" />
+    <preference name="orientation" value="portrait" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="android-targetSdkVersion" value="36" />
+    <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/icon/android/AngelDiceSplash.png" />
+    <preference name="GradlePluginKotlinEnabled" value="true" />
+    <preference name="GradlePluginKotlinVersion" value="2.3.0" />
+    <plugin name="cordova-plugin-device" spec="^3.0.0" />
+    <platform name="android">
+        <allow-intent href="market:*" />
+        <icon density="ldpi" height="36" src="res/icon/android/AngelDiceICO36.png" width="36" />
+        <icon density="mdpi" height="48" src="res/icon/android/AngelDiceICO48.png" width="48" />
+        <icon density="hdpi" height="72" src="res/icon/android/AngelDiceICO72.png" width="72" />
+        <icon density="xhdpi" height="96" src="res/icon/android/AngelDiceICO96.png" width="96" />
+    </platform>
+    <platform name="ios">
+        <allow-intent href="itms:*" />
+        <allow-intent href="itms-apps:*" />
+    </platform>
+    <engine name="android" spec="^13.0.0" />
+    <hook src="hooks/after_prepare/set_immersive.js" type="after_prepare" />
+    <hook src="hooks/copy-android-config.js" type="before_build" />
+</widget>

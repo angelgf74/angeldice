@@ -1,0 +1,12 @@
+node_modules/
+
+# Se regeneran con "cordova platform add" / package.json
+platforms/
+plugins/
+
+# Firma y binarios de release: nunca al repositorio
+release/*.keystore
+release/*.jks
+release/*.aab
+release/*.apk
+release/*.idsig

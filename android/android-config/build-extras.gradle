@@ -1,0 +1,19 @@
+// Fuente de verdad de la optimización R8 en release. El hook
+// hooks/copy-android-config.js copia este fichero a platforms/android/app/
+// antes de cada build, para que sobreviva a "cordova platform rm/add android".
+//
+// Cordova aplica build-extras.gradle ANTES del bloque android {}, por eso la
+// configuración va en ext.postBuildExtras, que se ejecuta al final.
+
+ext.postBuildExtras = {
+    android {
+        buildTypes {
+            release {
+                minifyEnabled true
+                shrinkResources true
+                proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                              'proguard-rules.pro'
+            }
+        }
+    }
+}

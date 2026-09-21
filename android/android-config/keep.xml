@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Se copia a platforms/android/app/src/main/res/raw/keep.xml
+
+    Cordova localiza res/xml/config.xml mediante Resources.getIdentifier(),
+    una referencia que el shrinker de recursos no puede rastrear. Sin este
+    fichero la app puede arrancar con "config.xml not found".
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@xml/config,@xml/cdv_core_file_provider_paths,@drawable/ic_cdv_splashscreen,@mipmap/ic_launcher*"
+    tools:shrinkMode="safe" />

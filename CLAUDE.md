@@ -4,13 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proyecto
 
-Angel Dice es un juego de memoria tipo Simon Says implementado como PWA (Progressive Web App). Es una migración del juego Android/Cordova original. No tiene sistema de build, ni gestor de paquetes, ni tests: es HTML/CSS/JS puro.
+Angel Dice es un juego de memoria tipo Simon Says. El repositorio contiene dos proyectos:
 
-## Desarrollo local
+- **`pwa/`** — versión web como PWA (Progressive Web App). HTML/CSS/JS puro, sin sistema de build ni tests.
+- **`android/`** — versión Android con Cordova. Incluye AdMob (`admob-plus-cordova`) y `cordova-plugin-device`.
+
+## Desarrollo local (PWA)
 
 Para trabajar con la PWA (Service Worker requiere HTTPS o localhost):
 
 ```bash
+cd pwa
 # Con Python
 python -m http.server 8080
 # Con Node
@@ -19,9 +23,10 @@ npx serve .
 
 Abrir `http://localhost:8080` en el navegador. El Service Worker solo se registra bajo HTTPS o localhost; en `file://` no funciona.
 
-## Despliegue
+## Despliegue (PWA)
 
 ```bash
+cd pwa
 bash deploy.sh
 ```
 
@@ -29,9 +34,16 @@ Copia los archivos al servidor `agfserver-angel` vía SCP y recarga nginx. Requi
 
 **La versión de caché se actualiza automáticamente** al ejecutar `deploy.sh` (mediante `sed` sobre `sw.js`). Solo es necesario hacerlo a mano si se despliega por otro medio.
 
-## Arquitectura
+## Código compartido (`shared/`)
 
-Todo el juego vive en `js/game.js` con tres objetos globales:
+- **`shared/css/app.css`** — estilos comunes (modal, botones, canvas).
+- **`shared/js/game.js`** — lógica completa. Contiene `Modal`, `Sonido` y `juego`. La variable `_isAndroid` (detecta `cordova` en runtime) activa ramas específicas de cada plataforma: registro de SW e install prompt en PWA; AdMob en Android.
+
+Cada proyecto accede a estos ficheros mediante una **junction de directorio** (`shared/`) creada con `mklink /J`. En el repo son enlaces transparentes; el SCP y el build de Cordova los siguen sin configuración extra.
+
+## Arquitectura (PWA)
+
+Todo el juego vive en `shared/js/game.js` con tres objetos globales:
 
 - **`Modal`** — sistema de diálogos: `Modal.show(options)` / `Modal.hide()`. Soporta `autoClose: 'btnKey|ms'` para cierre automático. Incrementa/decrementa `juego.enDialogo` para bloquear los toques mientras hay un diálogo abierto.
 
@@ -39,19 +51,30 @@ Todo el juego vive en `js/game.js` con tres objetos globales:
 
 - **`juego`** — lógica completa del juego. El canvas `#t1` ocupa toda la pantalla; `juego.draw(color, paso)` redibuja todo en cada frame. Los cuatro cuadrantes (azul=0, amarillo=1, verde=2, rojo=3) se mapean a sectores del arco: `idx = (y < cy) ? ((x < cx) ? 2 : 3) : ((x < cx) ? 1 : 0)`.
 
-### Estado persistido en `localStorage`
+### Estado persistido en `localStorage` (`shared/js/game.js`)
 
 | Clave | Valor |
 |---|---|
 | `conaudio` | `'true'`/`'false'` |
 | `ayudaaliniciar` | `'true'`/`'false'` (se muestra solo la primera vez) |
 | `record` | número máximo de nivel alcanzado |
+| `numcuadrantes` | número de sectores activos (3–8, defecto 4) |
 
-### Service Worker (`sw.js`)
+### Service Worker (`pwa/sw.js`, solo PWA)
 
 Estrategia cache-first. La lista `PRECACHE` debe incluir todos los assets estáticos. Al actualizar assets, cambiar la constante `CACHE` para invalidar cachés antiguas en clientes.
 
-## Integraciones externas
+## Proyecto Android (`android/`)
 
-- **Google AdSense** (`ca-pub-8600791204816041`) — script async en `<head>` de `index.html`.
+Basado en Cordova (`cordova-android ^13`). Versión actual: **1.1.7**.
+
+Plugins:
+- `cordova-plugin-device`
+- `admob-plus-cordova` — AdMob ID: `ca-app-pub-8600791204816041~3327170686`
+
+El código de la aplicación web dentro del proyecto Cordova está en `android/www/`.
+
+## Integraciones externas (PWA)
+
+- **Google AdSense** (`ca-pub-8600791204816041`) — script async en `<head>` de `pwa/index.html`.
 - **Web Analytics propio** — tracker en `https://angelgf.com.es/webanalyticsapi/tracker.js` con site ID `8e7cef69-3f4f-4ec6-bef7-9fe7a1c3477f`, cargado al final del `<body>`.

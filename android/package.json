@@ -1,0 +1,31 @@
+{
+    "name": "angeldice",
+    "displayName": "AngelDice",
+    "version": "1.1.9",
+    "description": "AngelDice. Repite la secuencia de colores.",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Angel Galan Fernandez <angelgf@gmail.com>",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "cordova-android": "^13.0.0",
+        "cordova-plugin-device": "^3.0.0"
+    },
+    "cordova": {
+        "plugins": {
+            "cordova-plugin-device": {},
+            "admob-plus-cordova": {
+                "APP_ID_ANDROID": "ca-app-pub-8600791204816041~3327170686",
+                "PLAY_SERVICES_VERSION": "25.3.0"
+            }
+        },
+        "platforms": [
+            "android"
+        ]
+    },
+    "devDependencies": {
+        "admob-plus-cordova": "^2.0.0-alpha.19"
+    }
+}

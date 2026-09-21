@@ -20,8 +20,7 @@ scp -r \
     manifest.json \
     sw.js \
     favicon.svg \
-    css \
-    js \
+    shared \
     icons \
     "$SSH_HOST:$REMOTE_DIR/"
 

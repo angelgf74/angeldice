@@ -1,6 +1,8 @@
 'use strict';
 
-// ─── Modal dialog system (replaces jquery-confirm) ───────────────────────────
+var _isAndroid = typeof cordova !== 'undefined';
+
+// ─── Modal dialog system ──────────────────────────────────────────────────────
 
 var Modal = {
     _timer: null,
@@ -84,7 +86,7 @@ var Sonido = {
             return;
         }
 
-        var freq = idx => 392 + 62 * idx; // 330+62* (idx+1);
+        var freq = function (idx) { return 392 + 62 * idx; };
         if (id < 8) {
             Sonido._tono(freq(id), 0.45, 'sine', 0);
         } else if (id === 8) {
@@ -159,13 +161,22 @@ var juego = {
 
     record: 0,
 
+    // PWA only
     _installPrompt: null,
     _audioLabel: '',
     _audioLabelTimer: null,
 
+    // Android / AdMob only
+    adModBannerId:       'ca-app-pub-8600791204816041/4844265247',
+    adModInterstitialId: 'ca-app-pub-8600791204816041/7753322005',
+    _banner:             null,
+    _interstitial:       null,
+
     inicializar: function () {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+        if (!_isAndroid) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js');
+            }
         }
 
         Sonido.init();
@@ -212,13 +223,22 @@ var juego = {
             juego.draw(-1, 0);
         });
 
-        window.addEventListener('beforeinstallprompt', function (e) {
-            e.preventDefault();
-            juego._installPrompt = e;
-        });
-        window.addEventListener('appinstalled', function () {
-            juego._installPrompt = null;
-        });
+        if (!_isAndroid) {
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                juego._installPrompt = e;
+            });
+            window.addEventListener('appinstalled', function () {
+                juego._installPrompt = null;
+            });
+        } else {
+            var initAdMob = function () { juego.InicializaPubli(); };
+            if (window.admob) {
+                initAdMob();
+            } else {
+                document.addEventListener('deviceready', initAdMob, false);
+            }
+        }
 
         setTimeout(function () {
             juego.mostrarSplash(function () {
@@ -232,6 +252,49 @@ var juego = {
         }, 100);
     },
 
+    // ── AdMob (Android only) ─────────────────────────────────────────────────
+
+    InicializaPubli: async function () {
+        try {
+            await juego.MostrarPubliBanner();
+        } catch (e) {
+            console.warn('AdMob banner error:', e);
+        }
+        juego.CargarInterstitial();
+    },
+
+    MostrarPubliBanner: async function () {
+        juego._banner = new admob.BannerAd({
+            adUnitId: juego.adModBannerId,
+            position: 'top',
+        });
+        await juego._banner.show();
+    },
+
+    CargarInterstitial: async function () {
+        try {
+            juego._interstitial = new admob.InterstitialAd({
+                adUnitId: juego.adModInterstitialId,
+            });
+            await juego._interstitial.load();
+        } catch (e) {
+            console.warn('AdMob interstitial load error:', e);
+        }
+    },
+
+    MostrarPubliInterstitial: async function () {
+        if (juego._interstitial) {
+            try {
+                await juego._interstitial.show();
+            } catch (e) {
+                console.warn('AdMob interstitial show error:', e);
+            }
+        }
+        juego.CargarInterstitial();
+    },
+
+    // ── UI handlers ──────────────────────────────────────────────────────────
+
     handleClick: function (x, y) {
         Sonido.unlock();
         if (juego.enDialogo > 0) return;
@@ -242,34 +305,36 @@ var juego = {
         var cy   = juego.centroY;
         var r    = juego.radio;
         var desp = juego._desp || 0;
-        var pad  = Math.min(W, H) * 0.04;
-        var botH = pad * 3;
+        var pad      = Math.min(W, H) * 0.04;
+        var botH     = pad * 3;
+        var iconSize = Math.min(botH * 0.75, 34);
+        var slot     = iconSize * 1.4;  // ancho de zona por botón lateral (igual que en draw)
 
         // Botón ayuda (abajo-izquierda)
-        if (y > H - botH && x < botH) {
+        if (y > H - botH && x < slot) {
             juego.mostrarAyuda();
             return;
         }
         // Botón configuración (abajo-izquierda, segundo)
-        if (y > H - botH && x >= botH && x < botH * 2) {
+        if (y > H - botH && x >= slot && x < slot * 2) {
             juego.mostrarConfiguracion();
             return;
         }
         // Toggle audio (abajo-derecha)
-        if (y > H - botH && x > W - botH) {
+        if (y > H - botH && x > W - slot) {
             juego.setConAudio(!juego.conAudio);
             juego.draw(-1, 0);
             return;
         }
 
         // Récord (centro-inferior)
-        if (!juego._installPrompt && juego.record > 0 && y > H - botH && x > botH && x < W - botH) {
+        if (!juego._installPrompt && juego.record > 0 && y > H - botH && x >= slot * 2 && x < W - slot) {
             juego.mostrarRecord();
             return;
         }
 
-        // Instalar PWA (centro-inferior)
-        if (juego._installPrompt && y > H - botH && x > botH && x < W - botH) {
+        // Instalar PWA (centro-inferior, solo PWA)
+        if (juego._installPrompt && y > H - botH && x >= slot * 2 && x < W - slot) {
             var p = juego._installPrompt;
             p.prompt();
             p.userChoice.then(function () {
@@ -295,29 +360,36 @@ var juego = {
 
     mostrarConfiguracion: function () {
         var sel = juego.numCuadrantes;
+        var enPartida = juego.Secuencia.length > 0;
         var html = [
             '<p style="margin-bottom:12px">Número de cuadrantes por partida:</p>',
             '<div id="nq-sel" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'
         ];
         for (var n = 3; n <= 8; n++) {
-            html.push('<button class="nq-btn' + (n === sel ? ' nq-active' : '') + '" data-n="' + n + '">' + n + '</button>');
+            html.push('<button class="nq-btn' + (n === sel ? ' nq-active' : '') + '" data-n="' + n + '"' + (enPartida ? ' disabled' : '') + '>' + n + '</button>');
         }
         html.push('</div>');
-        html.push('<p style="margin-top:10px;color:#666;font-size:0.82rem;text-align:center">Se aplica en la siguiente partida.</p>');
+        if (enPartida) {
+            html.push('<p style="margin-top:10px;color:#c00;font-size:0.82rem;text-align:center">No se puede cambiar durante una partida.</p>');
+        } else {
+            html.push('<p style="margin-top:10px;color:#666;font-size:0.82rem;text-align:center">Se aplica en la siguiente partida.</p>');
+        }
         Modal.show({
             title: '⚙️ Configuración',
             content: html.join(''),
             buttons: { Cerrar: function () {} }
         });
-        Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (btn) {
-            btn.addEventListener('click', function () {
-                var n = parseInt(this.getAttribute('data-n'), 10);
-                juego.setNumCuadrantes(n);
-                Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (b) {
-                    b.classList.toggle('nq-active', parseInt(b.getAttribute('data-n'), 10) === n);
+        if (!enPartida) {
+            Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (btn) {
+                btn.addEventListener('click', function () {
+                    var n = parseInt(this.getAttribute('data-n'), 10);
+                    juego.setNumCuadrantes(n);
+                    Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (b) {
+                        b.classList.toggle('nq-active', parseInt(b.getAttribute('data-n'), 10) === n);
+                    });
                 });
             });
-        });
+        }
     },
 
     mostrarRecord: function () {
@@ -340,7 +412,7 @@ var juego = {
             content: [
                 '<p><em>Memoriza y repite la secuencia de colores.</em></p>',
                 '<ul>',
-                '<li>El juego enciende los cuadrantes uno a uno: azul, amarillo, verde y rojo, cada uno con su propio sonido.</li>',
+                '<li>El juego enciende los cuadrantes uno a uno, cada uno con su propio sonido.</li>',
                 '<li>Cuando termine, repite la secuencia pulsando los cuadrantes en el mismo orden.</li>',
                 '<li>Cada ronda se añade un nuevo color al final de la secuencia.</li>',
                 '<li>Si te equivocas, la partida termina. Se guarda tu récord automáticamente.</li>',
@@ -354,7 +426,7 @@ var juego = {
                 '<p><strong>Barra inferior</strong></p>',
                 '<ul>',
                 '<li><b>❓</b> — muestra esta ayuda.</li>',
-                '<li><b>⚙️</b> — elige cuántos cuadrantes usar (3–8).</li>',
+                '<li><b>⚙️</b> — elige cuántos cuadrantes usar (3–8). No se puede cambiar durante una partida.</li>',
                 '<li><b>🏆 número</b> — récord actual. Tócalo para verlo en detalle.</li>',
                 '<li><b>🔔&nbsp;/&nbsp;🔕</b> — activa o desactiva el sonido.</li>',
                 '</ul>',
@@ -369,6 +441,7 @@ var juego = {
     },
 
     setNumCuadrantes: function (n) {
+        if (juego.Secuencia.length > 0) return;
         juego.numCuadrantes = n;
         localStorage.setItem('numcuadrantes', n);
         juego.draw(-1, 0);
@@ -389,6 +462,8 @@ var juego = {
     distancia: function (x1, y1, x2, y2) {
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     },
+
+    // ── Canvas rendering ─────────────────────────────────────────────────────
 
     DibArco: function (ctx, centerX, centerY, radius, color, startAngle, endAngle) {
         ctx.beginPath();
@@ -523,25 +598,38 @@ var juego = {
 
         // ── Título ────────────────────────────────────────────────────────────
         ctx.textBaseline  = 'middle';
-        ctx.textAlign     = 'center';
-        var titleFontSize = Math.min(titleH * 0.62, 52);
+        ctx.textAlign     = 'left';
+        var titleFontSize = Math.min(titleH * 0.68, 56);
         ctx.font          = 'bold ' + titleFontSize + 'px Arial';
+        var ty            = titleH / 2;
 
-        ctx.shadowColor   = 'rgba(0,40,140,0.85)';
-        ctx.shadowBlur    = 14;
+        var wAngel = ctx.measureText('Angel').width;
+        var wSpc   = titleFontSize * 0.22;
+        var wDice  = ctx.measureText('Dice').width;
+        var startX = cx - (wAngel + wSpc + wDice) / 2;
+
+        ctx.lineJoin    = 'round';
+        ctx.lineWidth   = Math.max(titleFontSize * 0.065, 2.5);
+        ctx.strokeStyle = 'rgba(0,10,50,0.8)';
+
+        ctx.shadowColor   = 'rgba(0,10,80,0.9)';
+        ctx.shadowBlur    = 18;
         ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle     = '#FFFFFF';
+        ctx.strokeText('Angel', startX, ty);
+        ctx.fillText('Angel', startX, ty);
 
-        var tGrad = ctx.createLinearGradient(cx - titleFontSize * 2.5, 0, cx + titleFontSize * 2.5, 0);
-        tGrad.addColorStop(0, '#ff4444');
-        tGrad.addColorStop(1, '#ffee44');
-        ctx.fillStyle = tGrad;
-        ctx.fillText('Angel Dice', cx, titleH / 2);
+        ctx.shadowColor   = 'rgba(100,50,0,0.75)';
+        ctx.fillStyle     = '#FFD700';
+        ctx.strokeText('Dice', startX + wAngel + wSpc, ty);
+        ctx.fillText('Dice', startX + wAngel + wSpc, ty);
 
         ctx.shadowColor   = 'transparent';
         ctx.shadowBlur    = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
+        ctx.lineWidth     = 1;
 
         // ── Barra inferior ────────────────────────────────────────────────────
         var botY     = H - botH / 2;
@@ -688,6 +776,9 @@ var juego = {
                 localStorage.setItem('record', juego.record);
             }
             juego.play(9);
+
+            if (_isAndroid) juego.MostrarPubliInterstitial();
+
             var reiniciar = function () {
                 var f = function () {
                     if (juego.pausa) { setTimeout(f, 100); }
@@ -695,6 +786,7 @@ var juego = {
                 };
                 setTimeout(f, 750);
             };
+            var shareUrl = _isAndroid ? 'https://angelgf.com.es/angeldice/' : window.location.href;
             var btns = { Aceptar: reiniciar };
             if (navigator.share) {
                 btns = {
@@ -704,7 +796,7 @@ var juego = {
                             navigator.share({
                                 title: 'Angel Dice',
                                 text: '¡He llegado al nivel ' + (nivel - 1) + ' en Angel Dice! ¿Puedes superarme?',
-                                url: window.location.href
+                                url: shareUrl
                             }).catch(function () {});
                             reiniciar();
                         }
@@ -752,7 +844,7 @@ var juego = {
         var ang  = [[0, 90], [90, 180], [180, 270], [270, 360]];
         var off  = [[desp, desp], [-desp, desp], [-desp, -desp], [desp, -desp]];
 
-        juego.colores2.forEach(function (col, i) {
+        juego.colores2.slice(0, 4).forEach(function (col, i) {
             var g = ctx.createRadialGradient(cx, cy, 10, cx, cy, r * 1.2);
             g.addColorStop(0, '#cccccc');
             g.addColorStop(1, col);
@@ -776,25 +868,40 @@ var juego = {
 
         var titleSize = Math.min(W * 0.12, 58);
         ctx.font         = 'bold ' + titleSize + 'px Arial';
-        ctx.textAlign    = 'center';
+        ctx.textAlign    = 'left';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor   = 'rgba(0,40,140,0.85)';
-        ctx.shadowBlur    = 14;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
 
-        var tg = ctx.createLinearGradient(cx - titleSize * 2.5, 0, cx + titleSize * 2.5, 0);
-        tg.addColorStop(0, '#ff4444');
-        tg.addColorStop(1, '#ffee44');
-        ctx.fillStyle = tg;
-        ctx.fillText('Angel Dice', cx, cy + r * 1.25);
+        var tsy    = cy + r * 1.25;
+        var tsA    = ctx.measureText('Angel').width;
+        var tsSpc  = titleSize * 0.22;
+        var tsD    = ctx.measureText('Dice').width;
+        var tsX    = cx - (tsA + tsSpc + tsD) / 2;
+
+        ctx.lineJoin    = 'round';
+        ctx.lineWidth   = Math.max(titleSize * 0.065, 2.5);
+        ctx.strokeStyle = 'rgba(0,10,50,0.8)';
+
+        ctx.shadowColor   = 'rgba(0,10,80,0.9)';
+        ctx.shadowBlur    = 18;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle     = '#FFFFFF';
+        ctx.strokeText('Angel', tsX, tsy);
+        ctx.fillText('Angel', tsX, tsy);
+
+        ctx.shadowColor   = 'rgba(100,50,0,0.75)';
+        ctx.fillStyle     = '#FFD700';
+        ctx.strokeText('Dice', tsX + tsA + tsSpc, tsy);
+        ctx.fillText('Dice', tsX + tsA + tsSpc, tsy);
 
         ctx.shadowColor   = 'transparent';
         ctx.shadowBlur    = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
+        ctx.lineWidth     = 1;
         ctx.font      = Math.floor(titleSize * 0.38) + 'px Arial';
         ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.textAlign = 'center';
         ctx.fillText('Juego de memoria', cx, cy + r * 1.62);
 
         setTimeout(callback, 1400);

@@ -1,0 +1,51 @@
+﻿
+.jconfirm.jconfirm-agf .jconfirm-bg{
+}
+.jconfirm.jconfirm-agf .jconfirm-box {
+    background-color: lightgray;
+    border: solid;
+    border-width: 2px;
+    border-color: black;
+    padding: 0 0 0 0;
+}
+.jconfirm.jconfirm-agf .jconfirm-box.loading{
+}
+.jconfirm.jconfirm-agf .jconfirm-box.loading:before{
+}
+.jconfirm.jconfirm-agf .jconfirm-box.loading:after{
+}
+.jconfirm.jconfirm-agf .jconfirm-box .jconfirm-closeIcon{
+    }
+.jconfirm.jconfirm-agf .jconfirm-box .jconfirm-title-c {
+    background-color: rgba(41, 128, 185, 1);
+    color: white;
+    padding-top: 3px;
+    /*margin-left: 3%;*/
+    height: 1.2em;
+    border: none;
+    border-bottom: solid;
+    border-color: black;
+    border-width: 2px;
+}
+    .jconfirm.jconfirm-agf .jconfirm-box .jconfirm-content-pane {
+        padding-left: 3%;
+        padding-right: 3%;
+        font-size: 1.2em;
+    }
+.jconfirm.jconfirm-agf .jconfirm-box .jconfirm-content{
+}
+    .jconfirm.jconfirm-agf .jconfirm-box .jconfirm-buttons {
+        text-align: right;
+        padding-left: 3%;
+        padding-right: 3%;
+    }
+.jconfirm.jconfirm-agf .jconfirm-box .jconfirm-buttons button{
+    width: 25%;
+}
+.jconfirm.jconfirm-agf span {
+    padding-left: 3%;
+    
+}
+div.jc-bs3-container  {
+height: auto;
+}
