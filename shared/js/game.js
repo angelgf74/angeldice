@@ -34,8 +34,8 @@ var Modal = {
             btnsEl.appendChild(btn);
         });
 
+        if (overlay.classList.contains('hidden')) juego.enDialogo++;
         overlay.classList.remove('hidden');
-        juego.enDialogo++;
 
         if (options.autoClose) {
             var parts  = options.autoClose.split('|');
@@ -52,8 +52,9 @@ var Modal = {
 
     hide: function () {
         Modal._clearTimer();
-        document.getElementById('modal-overlay').classList.add('hidden');
-        juego.enDialogo = Math.max(0, juego.enDialogo - 1);
+        var overlay = document.getElementById('modal-overlay');
+        if (!overlay.classList.contains('hidden')) juego.enDialogo = Math.max(0, juego.enDialogo - 1);
+        overlay.classList.add('hidden');
     },
 
     _clearTimer: function () {
@@ -139,6 +140,7 @@ var juego = {
     colores2: ['#7777FF', '#FFFF77', '#338833', '#FF3333', '#FF8833', '#33BBBB', '#FF66BB', '#9933FF'],
 
     numCuadrantes: 4,
+    numCuadrantesProx: 4,
 
     Secuencia: [],
     ReproduciendoSecuencia: false,
@@ -185,6 +187,7 @@ var juego = {
         var savedAyuda        = localStorage.getItem('ayudaaliniciar');
         juego.record          = parseInt(localStorage.getItem('record'), 10) || 0;
         juego.numCuadrantes   = Math.max(3, Math.min(8, parseInt(localStorage.getItem('numcuadrantes'), 10) || 4));
+        juego.numCuadrantesProx = juego.numCuadrantes;
 
         if (savedAyuda === null) {
             juego.ayudaAlIniciar = true;
@@ -359,37 +362,30 @@ var juego = {
     },
 
     mostrarConfiguracion: function () {
-        var sel = juego.numCuadrantes;
-        var enPartida = juego.Secuencia.length > 0;
+        var sel = juego.numCuadrantesProx;
         var html = [
             '<p style="margin-bottom:12px">Número de cuadrantes por partida:</p>',
             '<div id="nq-sel" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'
         ];
         for (var n = 3; n <= 8; n++) {
-            html.push('<button class="nq-btn' + (n === sel ? ' nq-active' : '') + '" data-n="' + n + '"' + (enPartida ? ' disabled' : '') + '>' + n + '</button>');
+            html.push('<button class="nq-btn' + (n === sel ? ' nq-active' : '') + '" data-n="' + n + '">' + n + '</button>');
         }
         html.push('</div>');
-        if (enPartida) {
-            html.push('<p style="margin-top:10px;color:#c00;font-size:0.82rem;text-align:center">No se puede cambiar durante una partida.</p>');
-        } else {
-            html.push('<p style="margin-top:10px;color:#666;font-size:0.82rem;text-align:center">Se aplica en la siguiente partida.</p>');
-        }
+        html.push('<p style="margin-top:10px;color:#666;font-size:0.82rem;text-align:center">Se aplica en la siguiente partida.</p>');
         Modal.show({
             title: '⚙️ Configuración',
             content: html.join(''),
             buttons: { Cerrar: function () {} }
         });
-        if (!enPartida) {
-            Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (btn) {
-                btn.addEventListener('click', function () {
-                    var n = parseInt(this.getAttribute('data-n'), 10);
-                    juego.setNumCuadrantes(n);
-                    Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (b) {
-                        b.classList.toggle('nq-active', parseInt(b.getAttribute('data-n'), 10) === n);
-                    });
+        Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (btn) {
+            btn.addEventListener('click', function () {
+                var n = parseInt(this.getAttribute('data-n'), 10);
+                juego.setNumCuadrantes(n);
+                Array.prototype.forEach.call(document.querySelectorAll('.nq-btn'), function (b) {
+                    b.classList.toggle('nq-active', parseInt(b.getAttribute('data-n'), 10) === n);
                 });
             });
-        }
+        });
     },
 
     mostrarRecord: function () {
@@ -441,10 +437,8 @@ var juego = {
     },
 
     setNumCuadrantes: function (n) {
-        if (juego.Secuencia.length > 0) return;
-        juego.numCuadrantes = n;
+        juego.numCuadrantesProx = n;
         localStorage.setItem('numcuadrantes', n);
-        juego.draw(-1, 0);
     },
 
     setConAudio: function (valor) {
@@ -731,8 +725,10 @@ var juego = {
     },
 
     iniciarSecuencia: function (primera) {
+        juego.numCuadrantes = juego.numCuadrantesProx;
         juego.Secuencia = [juego.Random3()];
         juego.Indice    = -1;
+        juego.draw(-1, 0);
         Modal.show({
             title: '⚠️ Atento',
             content: '<center><h1>⚠️ ¡ATENTO!</h1><p>Va a empezar la partida</p></center>',
@@ -781,7 +777,7 @@ var juego = {
 
             var reiniciar = function () {
                 var f = function () {
-                    if (juego.pausa) { setTimeout(f, 100); }
+                    if (juego.pausa || juego.enDialogo > 0) { setTimeout(f, 100); }
                     else             { juego.iniciarSecuencia(false); }
                 };
                 setTimeout(f, 750);

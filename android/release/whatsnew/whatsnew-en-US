@@ -1,4 +1,3 @@
-• Choose between 3 and 8 colors: new settings option to customize difficulty.
-• Intro animation: sectors light up one by one before each game starts.
-• Improved and more reliable sounds, especially on Android devices.
-• Full-screen display: no more overlap with the status bar or navigation bar.
+• Settings fixed: you can now change the number of sectors at any time (it applies to the next game), and the freezes when opening it at the start of a game are gone.
+• New launch screen with the Angel Dice icon.
+• Lower memory use and a lighter, more stable app.
