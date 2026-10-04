@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="es.angelgf.angeldice" version="1.1.9" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="es.angelgf.angeldice" version="1.1.10" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>AngelDice</name>
     <description>Angel Dice. Repite la secuencia de colores.</description>
     <author email="angelgf@gmail.com" href="">Angel Galan Fernandez</author>
@@ -31,5 +31,6 @@
     </platform>
     <engine name="android" spec="^13.0.0" />
     <hook src="hooks/after_prepare/set_immersive.js" type="after_prepare" />
+    <hook src="hooks/after_prepare/back_to_background.js" type="after_prepare" />
     <hook src="hooks/copy-android-config.js" type="before_build" />
 </widget>

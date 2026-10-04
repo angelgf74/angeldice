@@ -1,3 +1,4 @@
 • Settings fixed: you can now change the number of sectors at any time (it applies to the next game), and the freezes when opening it at the start of a game are gone.
 • New launch screen with the Angel Dice icon.
 • Lower memory use and a lighter, more stable app.
+• Fixed an unexpected crash when leaving the app with the back button.

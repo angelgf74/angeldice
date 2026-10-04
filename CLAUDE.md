@@ -66,7 +66,7 @@ Estrategia cache-first. La lista `PRECACHE` debe incluir todos los assets estát
 
 ## Proyecto Android (`android/`)
 
-Basado en Cordova (`cordova-android ^13`). Versión actual: **1.1.7**.
+Basado en Cordova (`cordova-android ^13`). Versión actual: **1.1.10**.
 
 Plugins:
 - `cordova-plugin-device`

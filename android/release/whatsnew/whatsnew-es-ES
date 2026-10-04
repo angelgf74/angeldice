@@ -1,3 +1,4 @@
 • Configuración corregida: ya puedes cambiar el número de cuadrantes en cualquier momento (se aplica en la siguiente partida) y se acabaron los bloqueos al abrirla al empezar.
 • Nueva pantalla de inicio con el icono de Angel Dice.
 • Menor consumo de memoria y aplicación más ligera y estable.
+• Corregido un cierre inesperado al salir de la aplicación con el botón "atrás".

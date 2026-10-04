@@ -258,6 +258,17 @@ var juego = {
     // ── AdMob (Android only) ─────────────────────────────────────────────────
 
     InicializaPubli: async function () {
+        // Política de familias de Google Play: anuncios aptos para menores.
+        // Debe aplicarse antes de pedir ningún anuncio.
+        try {
+            await admob.configure({
+                tagForChildDirectedTreatment: true,
+                tagForUnderAgeOfConsent: true,
+                maxAdContentRating: 'G',
+            });
+        } catch (e) {
+            console.warn('AdMob configure error:', e);
+        }
         try {
             await juego.MostrarPubliBanner();
         } catch (e) {
