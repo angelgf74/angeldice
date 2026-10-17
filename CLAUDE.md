@@ -70,7 +70,7 @@ Basado en Cordova (`cordova-android ^13`). Versión actual: **1.1.11**.
 
 Plugins:
 - `cordova-plugin-device`
-- `admob-plus-cordova` — AdMob ID: `ca-app-pub-8600791204816041~3327170686`
+- `admob-plus-cordova` — AdMob ID: `ca-app-pub-8600791204816041~2246022069`
 
 El código de la aplicación web dentro del proyecto Cordova está en `android/www/`.
 
