@@ -1,7 +1,7 @@
 {
     "name": "angeldice",
     "displayName": "AngelDice",
-    "version": "1.1.10",
+    "version": "1.1.11",
     "description": "AngelDice. Repite la secuencia de colores.",
     "main": "index.js",
     "scripts": {
