@@ -4,9 +4,12 @@ node_modules/
 platforms/
 plugins/
 
-# Firma y binarios de release: nunca al repositorio
-release/*.keystore
-release/*.jks
-release/*.aab
-release/*.apk
-release/*.idsig
+# Salida de gplay compilar, y nada de firma en el repositorio: el keystore
+# esta en ~/.google-play/keystores y su contrasena en el Administrador de
+# credenciales de Windows.
+release/
+*.jks
+*.keystore
+keystore.properties
+build.json
+release-signing.properties

@@ -1,0 +1,6 @@
+AngelDice
+Juego de memoria.
+
+Angel Dice trata de repetir la secuencia de colores en el orden correcto.
+
+La secuencia es cada vez mas larga.

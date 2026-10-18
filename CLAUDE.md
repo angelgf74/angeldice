@@ -66,13 +66,27 @@ Estrategia cache-first. La lista `PRECACHE` debe incluir todos los assets estát
 
 ## Proyecto Android (`android/`)
 
-Basado en Cordova (`cordova-android ^13`). Versión actual: **1.1.11**.
+Basado en Cordova (`cordova-android ^13`). La versión vive en `android/config.xml` (`gplay version` la muestra y la sube).
 
 Plugins:
 - `cordova-plugin-device`
 - `admob-plus-cordova` — AdMob ID: `ca-app-pub-8600791204816041~2246022069`
 
 El código de la aplicación web dentro del proyecto Cordova está en `android/www/`.
+
+## Publicar en Google Play
+
+Igual en todos los proyectos Android, con `gplay` (skill `google-play`), desde `android/`:
+
+    gplay version --parche        # o --menor, --mayor, x.y.z
+    gplay compilar                # AAB firmado y verificado en release/
+    gplay subir --canal internal  # ensayo; con --publicar, de verdad
+
+La firma la hace `gplay compilar`. El keystore está en `~/.google-play/keystores/` y su
+contraseña en el Administrador de credenciales de Windows. En el proyecto no hay
+contraseñas ni scripts de firma. La configuración está en `android/playstore/gplay.json`,
+las notas en `android/playstore/listing/<idioma>/changelogs/<versionCode>.txt` y la ficha
+en `android/playstore/listing/` (`gplay ficha descargar` / `publicar`).
 
 ## Integraciones externas (PWA)
 

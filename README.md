@@ -80,14 +80,15 @@ cordova platform add android
 cordova build android            # build de depuración
 ```
 
-Build de release firmado (genera `release/AngelDice.aab` para Google Play):
+La release firmada y su publicación en Google Play se hacen con `gplay` (herramienta propia), desde `android/`:
 
-```bat
-set KEYSTORE_PASS=...
-android\release\Firmar.bat
+```bash
+gplay version --parche        # sube la versión en config.xml
+gplay compilar                # AAB firmado en android/release/
+gplay subir --canal internal  # ensayo; con --publicar, de verdad
 ```
 
-El keystore de firma no está en el repositorio.
+El keystore de firma y su contraseña no están en el repositorio.
 
 ### Hooks de Cordova
 
