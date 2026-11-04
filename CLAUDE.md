@@ -25,21 +25,25 @@ Abrir `http://localhost:8080` en el navegador. El Service Worker solo se registr
 
 ## Despliegue (PWA)
 
+Con `srv` (skill `servidor`), desde el repo: `srv.json` (en la raíz) publica `pwa/` como web estática en https://angeldice.angelgf.com.es/.
+
 ```bash
-cd pwa
-bash deploy.sh
+srv estado                       # qué release hay publicada
+srv subir                        # ensayo; srv subir --publicar para publicar
+srv volver                       # vuelve a la release anterior (con ensayo)
 ```
 
-Copia los archivos al servidor `agfserver-angel` vía SCP y recarga nginx. Requiere acceso SSH configurado con ese alias en `~/.ssh/config`.
-
-**La versión de caché se actualiza automáticamente** al ejecutar `deploy.sh` (mediante `sed` sobre `sw.js`). Solo es necesario hacerlo a mano si se despliega por otro medio.
+- Solo se publican los ficheros de `web.ficheros` en `srv.json` (`index.html`, `manifest.json`, `sw.js`, `favicon.svg`, `icons/` y `shared/`) y solo lo que git tiene. Un fichero nuevo que haya que servir se añade ahí y, si es un asset, también a `PRECACHE` en `sw.js`.
+- Una ruta que no existe da 404: no es una SPA.
+- **La versión de caché la pone `srv subir`**: el paso propio `deploy/version-de-cache.mjs` cambia `CACHE` en el `sw.js` del paquete a `angeldice-<release>`. El `sw.js` del repo no se toca.
+- srv no publica con cambios sin commit.
 
 ## Código compartido (`shared/`)
 
 - **`shared/css/app.css`** — estilos comunes (modal, botones, canvas).
 - **`shared/js/game.js`** — lógica completa. Contiene `Modal`, `Sonido` y `juego`. La variable `_isAndroid` (detecta `cordova` en runtime) activa ramas específicas de cada plataforma: registro de SW e install prompt en PWA; AdMob en Android.
 
-Cada proyecto accede a estos ficheros mediante una **junction de directorio** (`shared/`) creada con `mklink /J`. En el repo son enlaces transparentes; el SCP y el build de Cordova los siguen sin configuración extra.
+Cada proyecto accede a estos ficheros mediante una **junction de directorio** (`shared/`) creada con `mklink /J`. En el repo son enlaces transparentes (git guarda los ficheros también bajo `pwa/shared/` y `android/www/shared/`); srv y el build de Cordova los siguen sin configuración extra.
 
 ## Arquitectura (PWA)
 
@@ -91,4 +95,4 @@ en `android/playstore/listing/` (`gplay ficha descargar` / `publicar`).
 ## Integraciones externas (PWA)
 
 - **Google AdSense** (`ca-pub-8600791204816041`) — script async en `<head>` de `pwa/index.html`.
-- **Web Analytics propio** — tracker en `https://angelgf.com.es/webanalyticsapi/tracker.js` con site ID `8e7cef69-3f4f-4ec6-bef7-9fe7a1c3477f`, cargado al final del `<body>`.
+- **Web Analytics propio** — tracker en `https://webanalytics-api.angelgf.com.es/tracker.js` con site ID `8e7cef69-3f4f-4ec6-bef7-9fe7a1c3477f`, cargado al final del `<body>`.
