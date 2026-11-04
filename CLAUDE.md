@@ -66,7 +66,9 @@ Todo el juego vive en `shared/js/game.js` con tres objetos globales:
 
 ### Service Worker (`pwa/sw.js`, solo PWA)
 
-Estrategia cache-first. La lista `PRECACHE` debe incluir todos los assets estáticos. Al actualizar assets, cambiar la constante `CACHE` para invalidar cachés antiguas en clientes.
+Estrategia cache-first. La lista `PRECACHE` debe incluir todos los assets estáticos. La constante `CACHE` la cambia `srv subir` en cada release (ver Despliegue), y así se invalidan las cachés antiguas de los clientes.
+
+`index.html` pide cada asset con la misma URL que tiene en `PRECACHE`, sin `?v=` ni otra query: `caches.match` compara también la query, y si no coincide el fichero nunca sale de la caché y sin red el juego no carga (pasaba con `game.js?v=1.0.0`).
 
 ## Proyecto Android (`android/`)
 
