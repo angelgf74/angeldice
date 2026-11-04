@@ -1,0 +1,11 @@
+{
+  "app": "angeldice",
+  "web": {
+    "estatica": "pwa",
+    "ficheros": ["index.html", "manifest.json", "sw.js", "favicon.svg", "icons", "shared"],
+    "dominio": "angeldice.angelgf.com.es"
+  },
+  "pasos": [
+    { "programa": "node", "argumentos": ["deploy/version-de-cache.mjs"] }
+  ]
+}

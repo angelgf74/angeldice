@@ -24,8 +24,9 @@ angeldice/
 ├── pwa/              Versión web
 │   ├── index.html
 │   ├── manifest.json
-│   ├── sw.js         Service Worker
-│   └── deploy.sh     Despliegue al servidor
+│   └── sw.js         Service Worker
+├── srv.json          Publicación de la PWA con srv
+├── deploy/           Paso propio de srv (versión de caché de sw.js)
 └── android/          Proyecto Cordova
     ├── config.xml
     ├── www/          Web empaquetada en la app
@@ -57,12 +58,15 @@ Y abrir `http://localhost:8080`.
 
 ### Despliegue
 
+Con `srv` (la herramienta de publicación del servidor), desde el repositorio y con todo en un commit:
+
 ```bash
-cd pwa
-bash deploy.sh
+srv subir            # ensayo: qué cambia frente a lo publicado
+srv subir --publicar # publica en https://angeldice.angelgf.com.es/
+srv volver           # vuelve a la versión anterior (ensayo; --publicar para hacerlo)
 ```
 
-Copia los ficheros por SCP al servidor y recarga nginx. Antes, actualiza automáticamente la versión de caché en `sw.js` para que los clientes descarguen los nuevos assets. Requiere acceso SSH configurado con el alias `agfserver-angel`.
+`srv.json` dice qué ficheros de `pwa/` se publican. Al empaquetar, `deploy/version-de-cache.mjs` cambia la versión de caché en el `sw.js` publicado para que los clientes descarguen los nuevos assets; el `sw.js` del repositorio no cambia.
 
 ## Versión Android
 
