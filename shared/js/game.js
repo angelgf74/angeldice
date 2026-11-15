@@ -67,6 +67,8 @@ var Modal = {
 
 var Sonido = {
     ctx: null,
+    _pendiente: null,   // último tono pedido con el audio suspendido: { id, t }
+    msPendiente: 250,   // más viejo que esto ya no suena al reanudarse
 
     init: function () {
         try {
@@ -84,11 +86,13 @@ var Sonido = {
     play: function (id) {
         if (!juego.conAudio || !Sonido.ctx) return;
         if (Sonido.ctx.state !== 'running') {
-            // Sin un gesto del usuario el navegador deja el audio suspendido. Se pide
-            // reanudarlo y este tono se pierde: si se guardara para después, todos los
-            // acumulados sonarían a la vez al reanudarse.
+            // Sin un gesto del usuario el navegador deja el audio suspendido, y reanudarlo
+            // tarda un instante aunque el gesto acabe de ocurrir. Se guarda solo el último
+            // tono pedido y suena al reanudarse si es reciente (el primer color tras
+            // pulsar «Jugar»). Nunca se acumulan: sonarían todos a la vez.
+            Sonido._pendiente = { id: id, t: Date.now() };
             var reanudado = Sonido.ctx.resume();
-            if (reanudado && reanudado.catch) reanudado.catch(function () {});
+            if (reanudado && reanudado.then) reanudado.then(Sonido._alReanudar, function () {});
             return;
         }
 
@@ -102,6 +106,14 @@ var Sonido = {
             Sonido._tono(523, 0.30, 'sine', 0.36);
         } else {
             Sonido._fallo();
+        }
+    },
+
+    _alReanudar: function () {
+        var p = Sonido._pendiente;
+        Sonido._pendiente = null;
+        if (p && Sonido.ctx.state === 'running' && Date.now() - p.t <= Sonido.msPendiente) {
+            Sonido.play(p.id);
         }
     },
 
@@ -203,6 +215,7 @@ var juego = {
     _interstitial:       null,
     _derrotasSinAnuncio: 0,     // derrotas desde el último intersticial
     _ultimoAnuncio:      0,     // instante (ms) del último intersticial o del arranque
+    msEsperaAnuncio:     3000,  // sin aviso de cierre del anuncio, «Jugar» sale pasado esto
 
     inicializar: function () {
         if (!_isAndroid) {
@@ -234,12 +247,32 @@ var juego = {
 
         var canvas = document.getElementById('t1');
 
-        // Un solo evento para ratón, dedo y lápiz, y cuenta al bajar, no al soltar.
-        // Las coordenadas van en píxeles CSS relativos al canvas; el CSS ya le pone
-        // touch-action: none, así que no hace falta preventDefault.
-        canvas.addEventListener('pointerdown', function (e) {
+        // El tablero y los botones cuentan al bajar el dedo, no al soltar. Las coordenadas
+        // van en píxeles CSS relativos al canvas; el CSS ya le pone touch-action: none,
+        // así que no hace falta preventDefault.
+        var alBajar = function (clientX, clientY) {
             var rect = canvas.getBoundingClientRect();
-            juego.handleClick(e.clientX - rect.left, e.clientY - rect.top);
+            juego.handleClick(clientX - rect.left, clientY - rect.top);
+        };
+        if (window.PointerEvent) {
+            canvas.addEventListener('pointerdown', function (e) { alBajar(e.clientX, e.clientY); });
+        } else {
+            // WebView antiguo, sin Pointer Events: toque y ratón por separado. Tras un
+            // toque el navegador emite además un mousedown emulado, que no cuenta otra vez.
+            var ultimoToque = 0;
+            canvas.addEventListener('touchstart', function (e) {
+                ultimoToque = Date.now();
+                alBajar(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            canvas.addEventListener('mousedown', function (e) {
+                if (Date.now() - ultimoToque > 800) alBajar(e.clientX, e.clientY);
+            });
+        }
+        // «Instalar» va aparte, en click: el navegador solo acepta prompt() dentro de un
+        // gesto completo, y un pointerdown táctil no lo es.
+        canvas.addEventListener('click', function (e) {
+            var rect = canvas.getBoundingClientRect();
+            juego.clicInstalar(e.clientX - rect.left, e.clientY - rect.top);
         });
 
         juego.ajustarCanvas();
@@ -311,15 +344,20 @@ var juego = {
         }
     },
 
+    // Devuelve si el anuncio ha llegado a mostrarse. show() se resuelve al abrirse el
+    // anuncio, no al cerrarse: el cierre lo avisa el evento admob.ad.dismiss.
     MostrarPubliInterstitial: async function () {
+        var mostrado = false;
         if (juego._interstitial) {
             try {
                 await juego._interstitial.show();
+                mostrado = true;
             } catch (e) {
                 console.warn('AdMob interstitial show error:', e);
             }
         }
         juego.CargarInterstitial();
+        return mostrado;
     },
 
     // Límite del intersticial. Cuenta esta derrota y dice si toca anuncio: solo con 3
@@ -375,16 +413,8 @@ var juego = {
             return;
         }
 
-        // Instalar PWA (centro-inferior, solo PWA)
-        if (juego._installPrompt && y > H - botH && x >= slot * 2 && x < W - slot) {
-            var p = juego._installPrompt;
-            p.prompt();
-            p.userChoice.then(function () {
-                juego._installPrompt = null;
-                juego.redibujar();
-            });
-            return;
-        }
+        // Instalar PWA (centro-inferior, solo PWA): lo atiende clicInstalar, en click.
+        if (juego.enZonaInstalar(x, y)) return;
 
         // El círculo central muestra el nivel: no es de ningún color.
         if (juego.distancia(x, y, cx, cy) < juego._rCen) return;
@@ -401,6 +431,24 @@ var juego = {
         if (juego.distancia(x, y, cx2, cy2) <= r) {
             juego.toque(idx);
         }
+    },
+
+    // Centro de la barra inferior, cuando el navegador ofrece instalar la PWA.
+    enZonaInstalar: function (x, y) {
+        if (!juego._installPrompt) return false;
+        var botH = Math.min(juego.ancho, juego.alto) * 0.04 * 3;
+        var slot = Math.min(botH * 0.75, 34) * 1.4;   // igual que en handleClick y en draw
+        return y > juego.alto - botH && x >= slot * 2 && x < juego.ancho - slot;
+    },
+
+    clicInstalar: function (x, y) {
+        if (juego.enDialogo > 0 || !juego.enZonaInstalar(x, y)) return;
+        var p = juego._installPrompt;
+        p.prompt();
+        p.userChoice.then(function () {
+            juego._installPrompt = null;
+            juego.redibujar();
+        });
     },
 
     mostrarConfiguracion: function () {
@@ -795,7 +843,7 @@ var juego = {
     // empieza otra vez por el primer color.
     reproducirSecuencia: function () {
         juego.estado = 'mostrando';
-        juego.redibujar();
+        juego.draw(-1);     // apagado: viene todo encendido de la animación de acierto
 
         function esperar() {
             if (juego.bloqueado()) { setTimeout(esperar, 100); } else { empezar(); }
@@ -1001,17 +1049,33 @@ var juego = {
         });
     },
 
-    // «Jugar otra vez». En Android, si toca intersticial, se muestra aquí (nunca en el
-    // momento del fallo) y la partida siguiente espera en el diálogo «Jugar», que queda
-    // debajo del anuncio: así no empieza sola mientras el anuncio está en pantalla ni
-    // depende de que el plugin avise de que se ha cerrado.
+    // «Jugar otra vez». En Android, si toca intersticial, se pide aquí (nunca en el
+    // momento del fallo) y no se enseña nada que pulsar hasta que el anuncio se cierra o
+    // falla: un botón a la vista mientras el anuncio aparece invita al clic accidental
+    // sobre el anuncio. Después, la partida espera en el diálogo «Jugar». Si el plugin
+    // no avisa del cierre, el diálogo sale igualmente a los 3 s (debajo del anuncio, si
+    // sigue abierto), así el juego nunca se queda parado.
     reiniciar: function (superados) {
-        if (_isAndroid && juego.tocaIntersticial(superados, Date.now())) {
-            juego.MostrarPubliInterstitial();
-            juego.iniciarSecuencia(true);
-        } else {
+        if (!(_isAndroid && juego.tocaIntersticial(superados, Date.now()))) {
             juego.iniciarSecuencia(false);
+            return;
         }
+        var hecho = false;
+        var respaldo = null;
+        var seguir = function () {
+            if (hecho) return;
+            hecho = true;
+            clearTimeout(respaldo);
+            document.removeEventListener('admob.ad.dismiss', seguir, false);
+            document.removeEventListener('admob.ad.showfail', seguir, false);
+            juego.iniciarSecuencia(true);
+        };
+        document.addEventListener('admob.ad.dismiss', seguir, false);
+        document.addEventListener('admob.ad.showfail', seguir, false);
+        respaldo = setTimeout(seguir, juego.msEsperaAnuncio);
+        juego.MostrarPubliInterstitial().then(function (mostrado) {
+            if (!mostrado) seguir();
+        });
     },
 
     Random3: function () {

@@ -91,7 +91,8 @@ function crearContexto2d() {
 export function cargarJuego(opciones = {}) {
     // documentoListo: game.js se carga con el documento ya analizado (readyState 'complete').
     const { android = false, audio: estadoAudio = 'running', compartir = false,
-            ancho = 390, alto = 844, dpr = 1, documentoListo = false } = opciones;
+            ancho = 390, alto = 844, dpr = 1, documentoListo = false,
+            sinPointerEvents = false } = opciones;
     const roto = opciones.almacen === 'roto';
     const almacen = roto ? {} : { ...(opciones.almacen || {}) };
 
@@ -130,7 +131,8 @@ export function cargarJuego(opciones = {}) {
         getElementById: (id) => elementos[id] || null,
         createElement: () => crearElemento(),
         querySelectorAll: () => [],
-        addEventListener: (tipo, fn) => { (oyentesDoc[tipo] = oyentesDoc[tipo] || []).push(fn); }
+        addEventListener: (tipo, fn) => { (oyentesDoc[tipo] = oyentesDoc[tipo] || []).push(fn); },
+        removeEventListener: (tipo, fn) => { oyentesDoc[tipo] = (oyentesDoc[tipo] || []).filter((x) => x !== fn); }
     };
 
     // ── Audio ────────────────────────────────────────────────────────────────
@@ -168,7 +170,8 @@ export function cargarJuego(opciones = {}) {
     let anuncios;
     let admob;
     if (android) {
-        anuncios = { mostrados: 0, fallar: false };
+        // cerrar(): el plugin avisa de que el jugador ha cerrado el intersticial.
+        anuncios = { mostrados: 0, fallar: false, cerrar: () => disparar(oyentesDoc, 'admob.ad.dismiss') };
         admob = {
             configure: () => Promise.resolve(),
             BannerAd: class { show() { return Promise.resolve(); } },
@@ -196,6 +199,8 @@ export function cargarJuego(opciones = {}) {
             setItem: (k, v) => { if (roto) throw new Error('almacenamiento bloqueado'); almacen[k] = String(v); }
         },
         console: { log() {}, warn: (...a) => avisos.push(a), error: (...a) => avisos.push(a) },
+        // Date.now() sigue al reloj simulado, para que los plazos sean deterministas.
+        Date: class extends Date { static now() { return 1700000000000 + reloj.ahora; } },
         setTimeout: reloj.programar,
         clearTimeout: reloj.cancelar,
         setInterval: reloj.repetir,
@@ -204,6 +209,7 @@ export function cargarJuego(opciones = {}) {
         addEventListener: (tipo, fn) => { (oyentesVentana[tipo] = oyentesVentana[tipo] || []).push(fn); }
     };
     if (android) { mundo.cordova = {}; mundo.admob = admob; }
+    if (!sinPointerEvents) mundo.PointerEvent = function PointerEvent() {};
     mundo.window = mundo;
     vm.createContext(mundo);
     vm.runInContext(FUENTE, mundo, { filename: RUTA });

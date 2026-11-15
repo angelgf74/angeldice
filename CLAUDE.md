@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Angel Dice es un juego de memoria tipo Simon Says. El repositorio contiene dos proyectos:
 
-- **`pwa/`** — versión web como PWA (Progressive Web App). HTML/CSS/JS puro, sin sistema de build ni tests.
+- **`pwa/`** — versión web como PWA (Progressive Web App). HTML/CSS/JS puro, sin sistema de build. Las pruebas están en `pruebas/` (ver «Pruebas»).
 - **`android/`** — versión Android con Cordova. Incluye AdMob (`admob-plus-cordova`) y `cordova-plugin-device`.
 
 ## Desarrollo local (PWA)
@@ -55,9 +55,9 @@ Todo el juego vive en `shared/js/game.js` con tres objetos globales:
 
 - **`Modal`** — sistema de diálogos: `Modal.show(options)` / `Modal.hide()`. Soporta `autoClose: 'btnKey|ms'` para cierre automático (hoy no lo usa ningún diálogo). El título se escribe como texto; el contenido, como HTML. Incrementa/decrementa `juego.enDialogo` para bloquear los toques mientras hay un diálogo abierto.
 
-- **`Sonido`** — sintetiza audio mediante la Web Audio API (sin ficheros externos). `play(id)`: 0–7 = tono sinusoidal del color, de `392 + 62 × id` Hz; 8 = arpegio ascendente de 4 notas (acierto); 9 = barrido sawtooth descendente (fallo). Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles; mientras el contexto no esté en marcha, `play` pide reanudarlo y descarta el tono (no lo guarda para después).
+- **`Sonido`** — sintetiza audio mediante la Web Audio API (sin ficheros externos). `play(id)`: 0–7 = tono sinusoidal del color, de `392 + 62 × id` Hz; 8 = arpegio ascendente de 4 notas (acierto); 9 = barrido sawtooth descendente (fallo). Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles; mientras el contexto no esté en marcha, `play` pide reanudarlo y guarda solo el último tono pedido, que suena al reanudarse si tiene menos de 250 ms (el primer color tras pulsar «Jugar»); nunca se acumulan tonos.
 
-- **`juego`** — lógica completa del juego. El canvas `#t1` ocupa toda la pantalla; `juego.draw(color)` redibuja todo y solo pinta (quien enciende un color pide antes su sonido con `juego.play(id)`). `juego.estado` dice de quién es el turno (`espera`, `demo`, `mostrando`, `turno`, `acierto`, `fin`): el tablero solo acepta toques en `turno`. El sector `qi` va de `qi × 360/N` a `(qi + 1) × 360/N` grados, desde las 3 en punto y en el sentido de las agujas del reloj. Con 4 cuadrantes coincide con el logo: azul (0) abajo a la derecha, amarillo (1) abajo a la izquierda, verde (2) arriba a la izquierda y rojo (3) arriba a la derecha. Un sector apagado se pinta con su color oscurecido (`juego.oscurecer(color, 0.55)`) y encendido con el color pleno, algo mayor y con halo.
+- **`juego`** — lógica completa del juego. El canvas `#t1` ocupa toda la pantalla; `juego.draw(color)` redibuja todo y solo pinta (quien enciende un color pide antes su sonido con `juego.play(id)`). `juego.estado` dice de quién es el turno (`espera`, `demo`, `mostrando`, `turno`, `acierto`, `fin`): el tablero solo acepta toques en `turno`. El tablero y los botones de la barra inferior responden en `pointerdown`; «Instalar» va aparte, en `click`, porque el navegador solo acepta `prompt()` dentro de un gesto completo. En Android, el intersticial se pide en `juego.reiniciar` (tras «Jugar otra vez», nunca en el fallo), con el límite de `juego.tocaIntersticial` (3 niveles superados, 3 derrotas y 90 s), y el diálogo «Jugar» no aparece hasta que el anuncio se cierra o falla (o pasan 3 s sin aviso del plugin). El sector `qi` va de `qi × 360/N` a `(qi + 1) × 360/N` grados, desde las 3 en punto y en el sentido de las agujas del reloj. Con 4 cuadrantes coincide con el logo: azul (0) abajo a la derecha, amarillo (1) abajo a la izquierda, verde (2) arriba a la izquierda y rojo (3) arriba a la derecha. Un sector apagado se pinta con su color oscurecido (`juego.oscurecer(color, 0.55)`) y encendido con el color pleno, algo mayor y con halo.
 
 ### Estado persistido en `localStorage` (`shared/js/game.js`)
 

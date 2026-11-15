@@ -11,13 +11,39 @@ test('el tono suena en el instante en que se enciende el color', () => {
     assert.equal(de('sonido').t, de('luz').t);
 });
 
-test('con el audio suspendido los tonos se descartan', async () => {
+test('con el audio suspendido los tonos no se acumulan: al reanudar suena solo el último', async () => {
     const j = nuevo({ audio: 'suspended' }); j.arrancar();
     for (const id of [0, 1, 2, 3]) j.Sonido.play(id);
+    await j.audio.reanudar();
+    assert.equal(j.audio.osciladores, 1);
+});
+
+test('un tono pedido hace rato no suena al reanudar', async () => {
+    const j = nuevo({ audio: 'suspended' }); j.arrancar();
+    j.Sonido.play(0);
+    j.reloj.avanzar(1000);
     await j.audio.reanudar();
     assert.equal(j.audio.osciladores, 0);
     j.Sonido.play(0);
     assert.equal(j.audio.osciladores, 1);
+});
+
+test('el primer tono de la demo suena aunque el audio se reanude justo después del clic', async () => {
+    const j = nuevo({ audio: 'suspended' }); j.arrancar();
+    j.pulsar('Jugar');                  // el clic pide reanudar y la demo empieza en el mismo instante
+    await j.audio.reanudar();
+    j.hastaEstado('mostrando');
+    assert.equal(j.audio.osciladores, 4);
+});
+
+test('tras un acierto el tablero se apaga antes de enseñar el primer color', () => {
+    const j = nuevo(); j.jugarHastaNivel(1);
+    const desde = j.eventos.length;
+    j.juego.toque(j.juego.Secuencia[0]);
+    j.hastaEstado('mostrando');
+    j.reloj.avanzar(100);
+    const luces = j.eventos.slice(desde).filter(e => e.tipo === 'luz' && e.estado === 'mostrando');
+    assert.equal(luces[0].valor, -1);
 });
 
 for (const interrumpir of ['segundo plano', 'diálogo']) {
