@@ -14,7 +14,8 @@ var Modal = {
         var contentEl= document.getElementById('modal-content');
         var btnsEl   = document.getElementById('modal-buttons');
 
-        titleEl.innerHTML  = options.title   || '';
+        // El título es texto; el contenido lleva etiquetas escritas en este fichero.
+        titleEl.textContent = options.title  || '';
         contentEl.innerHTML= options.content || '';
         btnsEl.innerHTML   = '';
 
@@ -405,14 +406,14 @@ var juego = {
     mostrarConfiguracion: function () {
         var sel = juego.numCuadrantesProx;
         var html = [
-            '<p style="margin-bottom:12px">Número de cuadrantes por partida:</p>',
-            '<div id="nq-sel" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'
+            '<p>Número de cuadrantes por partida:</p>',
+            '<div id="nq-sel" class="nq-sel">'
         ];
         for (var n = 3; n <= 8; n++) {
             html.push('<button class="nq-btn' + (n === sel ? ' nq-active' : '') + '" data-n="' + n + '">' + n + '</button>');
         }
         html.push('</div>');
-        html.push('<p style="margin-top:10px;color:#666;font-size:0.82rem;text-align:center">Se aplica en la siguiente partida.</p>');
+        html.push('<p class="nota">Se aplica en la siguiente partida.</p>');
         Modal.show({
             title: '⚙️ Configuración',
             content: html.join(''),
@@ -433,10 +434,10 @@ var juego = {
         Modal.show({
             title: '🏆 Récord',
             content: [
-                '<div style="text-align:center;padding:12px 0">',
-                '<p style="font-size:4rem;font-weight:bold;line-height:1;color:#004CB3;margin:0 0 10px">',
+                '<div class="record">',
+                '<p class="record-num">',
                 juego.record + '</p>',
-                '<p style="color:#555;margin:0">niveles superados</p>',
+                '<p class="nota">niveles superados</p>',
                 '</div>'
             ].join(''),
             buttons: { Cerrar: function () {} }

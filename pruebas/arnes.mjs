@@ -63,10 +63,14 @@ function crearElemento(clases) {
         getAttribute: () => null,
         disparar: (tipo, evento) => { (oyentes[tipo] || []).slice().forEach((fn) => fn(evento || {})); }
     };
-    // innerHTML y textContent comparten el texto: a las pruebas les basta con lo último escrito.
-    const propiedad = { get: () => texto, set: (v) => { texto = String(v); el.children = []; } };
-    Object.defineProperty(el, 'innerHTML', propiedad);
-    Object.defineProperty(el, 'textContent', propiedad);
+    // innerHTML y textContent comparten el texto: a las pruebas les basta con lo último
+    // escrito. escritoComo dice por cuál de las dos propiedades llegó.
+    const propiedad = (nombre) => ({
+        get: () => texto,
+        set: (v) => { texto = String(v); el.children = []; el.escritoComo = nombre; }
+    });
+    Object.defineProperty(el, 'innerHTML', propiedad('innerHTML'));
+    Object.defineProperty(el, 'textContent', propiedad('textContent'));
     return el;
 }
 
@@ -230,6 +234,7 @@ export function cargarJuego(opciones = {}) {
         if (elementos['modal-overlay'].classList.contains('hidden')) return null;
         return {
             titulo: elementos['modal-title'].textContent,
+            tituloEscritoComo: elementos['modal-title'].escritoComo,
             contenido: elementos['modal-content'].innerHTML,
             botones: elementos['modal-buttons'].children.map((b) => b.textContent)
         };
