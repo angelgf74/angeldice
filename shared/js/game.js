@@ -182,6 +182,11 @@ var juego = {
     _audioLabel: '',
     _audioLabelTimer: null,
 
+    msToque: 250,       // lo que queda encendido el color que toca el jugador
+    _encendido: -1,     // lo último que pintó draw: índice, -1 ninguno, -2 todos
+    _tApagado: null,    // el único apagado pendiente de encender()
+    _rCen: 0,           // radio del círculo central, lo calcula draw
+
     // Android / AdMob only
     adModBannerId:       'ca-app-pub-8600791204816041/4844265247',
     adModInterstitialId: 'ca-app-pub-8600791204816041/7753322005',
@@ -197,15 +202,15 @@ var juego = {
 
         Sonido.init();
 
-        juego.conAudio        = localStorage.getItem('conaudio') === 'true';
-        var savedAyuda        = localStorage.getItem('ayudaaliniciar');
-        juego.record          = parseInt(localStorage.getItem('record'), 10) || 0;
-        juego.numCuadrantes   = Math.max(3, Math.min(8, parseInt(localStorage.getItem('numcuadrantes'), 10) || 4));
+        juego.conAudio        = juego.leer('conaudio') === 'true';
+        var savedAyuda        = juego.leer('ayudaaliniciar');
+        juego.record          = parseInt(juego.leer('record'), 10) || 0;
+        juego.numCuadrantes   = Math.max(3, Math.min(8, parseInt(juego.leer('numcuadrantes'), 10) || 4));
         juego.numCuadrantesProx = juego.numCuadrantes;
 
         if (savedAyuda === null) {
             juego.ayudaAlIniciar = true;
-            localStorage.setItem('ayudaaliniciar', 'true');
+            juego.guardar('ayudaaliniciar', 'true');
         } else {
             juego.ayudaAlIniciar = savedAyuda === 'true';
         }
@@ -236,8 +241,10 @@ var juego = {
             juego.handleClick((touch.clientX - rect.left) * sx, (touch.clientY - rect.top) * sy);
         }, { passive: false });
 
+        juego.ajustarCanvas();
         window.addEventListener('resize', function () {
-            juego.draw(-1);
+            juego.ajustarCanvas();
+            juego.redibujar();
         });
 
         if (!_isAndroid) {
@@ -260,7 +267,7 @@ var juego = {
         setTimeout(function () {
             juego.mostrarSplash(function () {
                 if (juego.ayudaAlIniciar) {
-                    localStorage.setItem('ayudaaliniciar', 'false');
+                    juego.guardar('ayudaaliniciar', 'false');
                     juego.mostrarAyuda(function () { juego.iniciarSecuencia(true); });
                 } else {
                     juego.iniciarSecuencia(true);
@@ -351,7 +358,7 @@ var juego = {
         // Toggle audio (abajo-derecha)
         if (y > H - botH && x > W - slot) {
             juego.setConAudio(!juego.conAudio);
-            juego.draw(-1);
+            juego.redibujar();
             return;
         }
 
@@ -367,10 +374,13 @@ var juego = {
             p.prompt();
             p.userChoice.then(function () {
                 juego._installPrompt = null;
-                juego.draw(-1);
+                juego.redibujar();
             });
             return;
         }
+
+        // El círculo central muestra el nivel: no es de ningún color.
+        if (juego.distancia(x, y, cx, cy) < juego._rCen) return;
 
         var N    = juego.numCuadrantes;
         var ang  = Math.atan2(y - cy, x - cx) * 180 / Math.PI;
@@ -461,20 +471,30 @@ var juego = {
         });
     },
 
+    // localStorage puede estar bloqueado (modo privado, ajustes del navegador) y lanzar
+    // al leer o al escribir: el juego sigue con los valores por defecto.
+    leer: function (clave) {
+        try { return localStorage.getItem(clave); } catch (e) { return null; }
+    },
+
+    guardar: function (clave, valor) {
+        try { localStorage.setItem(clave, valor); } catch (e) { /* no se guarda */ }
+    },
+
     setNumCuadrantes: function (n) {
         juego.numCuadrantesProx = n;
-        localStorage.setItem('numcuadrantes', n);
+        juego.guardar('numcuadrantes', n);
     },
 
     setConAudio: function (valor) {
         juego.conAudio = valor;
-        localStorage.setItem('conaudio', valor);
+        juego.guardar('conaudio', valor);
         juego._audioLabel = valor ? 'Sonido ON' : 'Sonido OFF';
         if (juego._audioLabelTimer) clearTimeout(juego._audioLabelTimer);
         juego._audioLabelTimer = setTimeout(function () {
             juego._audioLabel = '';
             juego._audioLabelTimer = null;
-            juego.draw(-1);
+            juego.redibujar();
         }, 2000);
     },
 
@@ -503,19 +523,16 @@ var juego = {
     // Solo pinta. color: índice del cuadrante encendido, -1 ninguno, -2 todos.
     // Quien enciende un color pide antes su sonido con juego.play(id).
     draw: function (color) {
+        juego._encendido = color;
+
         var canvas = document.getElementById('t1');
-        var W = window.innerWidth;
-        var H = window.innerHeight;
-
-        canvas.width        = W;
-        canvas.height       = H;
-        canvas.style.width  = W + 'px';
-        canvas.style.height = H + 'px';
-
-        juego.ancho = W;
-        juego.alto  = H;
+        var W = juego.ancho;
+        var H = juego.alto;
 
         var ctx = canvas.getContext('2d');
+        // El tamaño ya no se reasigna en cada pintado, así que el estado del contexto
+        // no se borra solo: se guarda aquí y se repone al final.
+        ctx.save();
 
         // Fondo degradado
         var bg = ctx.createLinearGradient(0, 0, W, H);
@@ -559,6 +576,7 @@ var juego = {
 
         // ── Círculo central con nivel ─────────────────────────────────────────
         var rCen = Math.max(r * 0.20, 24);
+        juego._rCen = rCen;
 
         ctx.beginPath();
         ctx.arc(cx, cy, rCen, 0, Math.PI * 2);
@@ -680,7 +698,35 @@ var juego = {
         ctx.fillStyle = 'rgba(200,220,255,0.85)';
         ctx.fillText('⚙️', pad * 0.4 + iconSize * 1.4, botY);
 
-        ctx.textBaseline = 'alphabetic';
+        ctx.restore();
+    },
+
+    // Único sitio que fija el tamaño del canvas: al arrancar y al redimensionar.
+    ajustarCanvas: function () {
+        var canvas = document.getElementById('t1');
+        var W = window.innerWidth;
+        var H = window.innerHeight;
+        canvas.width        = W;
+        canvas.height       = H;
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
+        juego.ancho = W;
+        juego.alto  = H;
+    },
+
+    // Enciende un color durante ms. Solo hay un apagado pendiente: el anterior se cancela.
+    encender: function (color, ms) {
+        if (juego._tApagado) clearTimeout(juego._tApagado);
+        juego.draw(color);
+        juego._tApagado = setTimeout(function () {
+            juego._tApagado = null;
+            juego.draw(-1);
+        }, ms);
+    },
+
+    // Repinta sin cambiar lo que está encendido (giro de pantalla, texto de sonido...).
+    redibujar: function () {
+        juego.draw(juego._encendido);
     },
 
     SelColor: function (colSecuencia, colPosicion, ctx) {
@@ -793,7 +839,7 @@ var juego = {
         juego.Indice++;
         var correcto = juego.Secuencia[juego.Indice] === color;
         juego.play(color);
-        juego.draw(color);
+        juego.encender(color, juego.msToque);
 
         if (correcto) {
             if (juego.Indice + 1 >= juego.Secuencia.length) {
@@ -805,15 +851,13 @@ var juego = {
                         juego.reproducirSecuencia();
                     });
                 }, 1000);
-            } else {
-                setTimeout(function () { juego.draw(-1); }, 1000);
             }
         } else {
             juego.estado = 'fin';
             var nivel = juego.Secuencia.length;
             if (nivel - 1 > juego.record) {
                 juego.record = nivel - 1;
-                localStorage.setItem('record', juego.record);
+                juego.guardar('record', juego.record);
             }
             juego.play(9);
 
@@ -858,19 +902,14 @@ var juego = {
 
     mostrarSplash: function (callback) {
         var canvas = document.getElementById('t1');
-        var W = window.innerWidth;
-        var H = window.innerHeight;
-        canvas.width        = W;
-        canvas.height       = H;
-        canvas.style.width  = W + 'px';
-        canvas.style.height = H + 'px';
+        var W = juego.ancho;
+        var H = juego.alto;
 
-        juego.ancho   = W;
-        juego.alto    = H;
         juego.centroX = W / 2;
         juego.centroY = H / 2;
 
         var ctx = canvas.getContext('2d');
+        ctx.save();
         var bg  = ctx.createLinearGradient(0, 0, W, H);
         bg.addColorStop(0, '#8ED6FF');
         bg.addColorStop(1, '#004CB3');
@@ -943,6 +982,8 @@ var juego = {
         ctx.fillStyle = 'rgba(255,255,255,0.75)';
         ctx.textAlign = 'center';
         ctx.fillText('Juego de memoria', cx, cy + r * 1.62);
+
+        ctx.restore();
 
         setTimeout(callback, 1400);
     },
