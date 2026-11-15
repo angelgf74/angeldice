@@ -143,7 +143,14 @@ var juego = {
     numCuadrantesProx: 4,
 
     Secuencia: [],
-    ReproduciendoSecuencia: false,
+    // De quién es el turno. Solo en 'turno' cuentan los toques sobre el tablero.
+    //   espera     partida preparada, aún no ha empezado
+    //   demo       se enseñan los cuadrantes uno a uno
+    //   mostrando  se reproduce la secuencia
+    //   turno      el jugador repite la secuencia
+    //   acierto    nivel completado, hasta que empieza la secuencia siguiente
+    //   fin        ha fallado, hasta que empieza otra partida
+    estado: 'espera',
     Indice: -1,
 
     pausa: false,
@@ -685,7 +692,7 @@ var juego = {
     },
 
     reproducirSecuencia: function () {
-        juego.ReproduciendoSecuencia = true;
+        juego.estado = 'mostrando';
         var idx  = 0;
         var paso = 0;
         var tid  = setInterval(function () {
@@ -706,7 +713,7 @@ var juego = {
             if (idx > juego.Secuencia.length + 1) {
                 juego.draw(-1, paso);
                 clearInterval(tid);
-                juego.ReproduciendoSecuencia = false;
+                juego.estado = 'turno';
             }
         }, juego.tIntervalo);
     },
@@ -718,6 +725,7 @@ var juego = {
     },
 
     demoCuadrantes: function (callback) {
+        juego.estado = 'demo';
         var N = juego.numCuadrantes;
         var i = 0;
         function paso() {
@@ -739,6 +747,7 @@ var juego = {
         juego.numCuadrantes = juego.numCuadrantesProx;
         juego.Secuencia = [juego.Random3()];
         juego.Indice    = -1;
+        juego.estado    = 'espera';
         juego.draw(-1, 0);
         Modal.show({
             title: '⚠️ Atento',
@@ -758,7 +767,7 @@ var juego = {
     },
 
     toque: function (color) {
-        if (juego.ReproduciendoSecuencia) return;
+        if (juego.estado !== 'turno') return;
 
         juego.Indice++;
         var correcto = juego.Secuencia[juego.Indice] === color;
@@ -766,6 +775,7 @@ var juego = {
 
         if (correcto) {
             if (juego.Indice + 1 >= juego.Secuencia.length) {
+                juego.estado = 'acierto';
                 setTimeout(function () {
                     juego.Secuencia.push(juego.Random3());
                     juego.Indice = -1;
@@ -777,6 +787,7 @@ var juego = {
                 setTimeout(function () { juego.draw(-1, 0); }, 1000);
             }
         } else {
+            juego.estado = 'fin';
             var nivel = juego.Secuencia.length;
             if (nivel - 1 > juego.record) {
                 juego.record = nivel - 1;
