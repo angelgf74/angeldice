@@ -1,0 +1,7 @@
+• Faster games: restarting is instant and the sequence plays quicker.
+• New on-screen indicator that tells you when to watch and when to tap.
+• Each color's sound now plays exactly when it lights up.
+• When you miss, you'll see the correct color and whether you beat your record.
+• Sharper board, clearer lit colors and a new icon.
+• Fewer full-screen ads, and never right when you miss.
+• Fixed: a double tap could make you lose after a correct answer.

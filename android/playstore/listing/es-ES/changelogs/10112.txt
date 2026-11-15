@@ -1,0 +1,7 @@
+• Partidas más ágiles: «Jugar otra vez» empieza al instante y la secuencia va más rápida.
+• Nuevo indicador «Observa» / «Tu turno» para saber cuándo tocar.
+• El sonido de cada color suena justo cuando se enciende.
+• Al fallar verás cuál era el color correcto y si has batido tu récord.
+• Tablero más nítido, colores encendidos más visibles e icono nuevo.
+• Menos anuncios a pantalla completa, y nunca en el momento de fallar.
+• Corregido: un doble toque podía hacer perder tras acertar.
