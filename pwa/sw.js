@@ -7,7 +7,8 @@ const PRECACHE = [
     './shared/css/app.css',
     './shared/js/game.js',
     './icons/icon-192.png',
-    './icons/icon-512.png'
+    './icons/icon-512.png',
+    './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', e =>
