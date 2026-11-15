@@ -18,7 +18,7 @@
             "cordova-plugin-device": {},
             "admob-plus-cordova": {
                 "APP_ID_ANDROID": "ca-app-pub-8600791204816041~2246022069",
-                "PLAY_SERVICES_VERSION": "25.3.0"
+                "PLAY_SERVICES_VERSION": "25.5.0"
             }
         },
         "platforms": [
