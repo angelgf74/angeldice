@@ -80,7 +80,7 @@ Basado en Cordova (`cordova-android ^13`). La versión vive en `android/config.x
 
 Plugins:
 - `cordova-plugin-device`
-- `admob-plus-cordova` — AdMob ID: `ca-app-pub-8600791204816041~2246022069`
+- `admob-plus-cordova` — AdMob ID: `ca-app-pub-8600791204816041~2246022069`. El plugin está en su última versión (2.0.0-alpha.19, noviembre de 2024) y no se publica nada nuevo. El SDK de Google que usa (`play-services-ads`) se fija aparte, en `PLAY_SERVICES_VERSION` de `android/package.json`. Esa variable se aplica al instalar el plugin: tras cambiarla hay que reinstalarlo con `cordova plugin rm admob-plus-cordova --nosave` y `cordova prepare android` (desde `android/`). La versión que acaba en el paquete se lee en `play-services-ads.properties`, en la raíz del APK.
 
 El código de la aplicación web dentro del proyecto Cordova está en `android/www/`.
 
