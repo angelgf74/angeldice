@@ -170,10 +170,9 @@ var juego = {
     enDialogo: 0,
     // Tiempos de la reproducción de la secuencia, en milisegundos.
     msInicial: 300,         // apagado antes del primer color
-    msEncendido: 700,       // cada color encendido
-    msApagado: 300,         // apagado entre colores
-    msVacioFinal: 1000,     // apagado tras el último color
-    msDestelloFinal: 1000,  // todos encendidos antes del turno del jugador
+    msEncendido: 450,       // cada color encendido
+    msApagado: 150,         // apagado entre colores
+    msTrasAcierto: 400,     // del último acierto a la animación de nivel superado
 
     record: 0,
 
@@ -208,7 +207,9 @@ var juego = {
 
         Sonido.init();
 
-        juego.conAudio        = juego.leer('conaudio') === 'true';
+        // Sin valor guardado el sonido va activado: el tono de cada color ayuda a recordar.
+        var savedAudio        = juego.leer('conaudio');
+        juego.conAudio        = savedAudio === null ? true : savedAudio === 'true';
         var savedAyuda        = juego.leer('ayudaaliniciar');
         juego.record          = parseInt(juego.leer('record'), 10) || 0;
         juego.numCuadrantes   = Math.max(3, Math.min(8, parseInt(juego.leer('numcuadrantes'), 10) || 4));
@@ -448,7 +449,7 @@ var juego = {
                 '<li>Cuando termine, repite la secuencia pulsando los cuadrantes en el mismo orden.</li>',
                 '<li>Cada ronda se añade un nuevo color al final de la secuencia.</li>',
                 '<li>Si te equivocas, la partida termina. Se guarda tu récord automáticamente.</li>',
-                '<li>Al completar la secuencia, todos los cuadrantes se iluminan con una animación de ondas.</li>',
+                '<li>Arriba verás «Observa» o «Tu turno».</li>',
                 '</ul>',
                 '<p><strong>Pantalla</strong></p>',
                 '<ul>',
@@ -544,7 +545,7 @@ var juego = {
 
         // Layout: reservar zona para título (arriba) e iconos (abajo)
         var pad    = Math.min(W, H) * 0.04;
-        var titleH = pad * 3.5;
+        var titleH = pad * 5;       // título arriba y texto de estado debajo
         var botH   = pad * 3;
         var boardH = H - titleH - botH;
 
@@ -633,9 +634,9 @@ var juego = {
         // ── Título ────────────────────────────────────────────────────────────
         ctx.textBaseline  = 'middle';
         ctx.textAlign     = 'left';
-        var titleFontSize = Math.min(titleH * 0.68, 56);
+        var titleFontSize = Math.min(pad * 2.38, 56);
         ctx.font          = 'bold ' + titleFontSize + 'px Arial';
-        var ty            = titleH / 2;
+        var ty            = pad * 1.75;
 
         var wAngel = ctx.measureText('Angel').width;
         var wSpc   = titleFontSize * 0.22;
@@ -665,17 +666,26 @@ var juego = {
         ctx.shadowOffsetY = 0;
         ctx.lineWidth     = 1;
 
+        // ── Texto de estado: de quién es el turno ─────────────────────────────
+        var textoEstado = juego.textoEstado();
+        if (textoEstado) {
+            ctx.font      = 'bold ' + Math.min(Math.max(16, Math.floor(pad * 1.1)), 28) + 'px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText(textoEstado, cx, pad * 4);
+        }
+
         // ── Barra inferior ────────────────────────────────────────────────────
         var botY     = H - botH / 2;
         var iconSize = Math.min(botH * 0.75, 34);
 
         if (juego._installPrompt) {
-            ctx.font      = Math.floor(botH * 0.30) + 'px Arial';
+            ctx.font      = Math.max(16, Math.floor(botH * 0.30)) + 'px Arial';
             ctx.fillStyle = 'rgba(200,240,255,0.95)';
             ctx.textAlign = 'center';
             ctx.fillText('⬇ Instalar', cx, botY);
         } else if (juego.record > 0) {
-            ctx.font      = Math.floor(botH * 0.30) + 'px Arial';
+            ctx.font      = Math.max(16, Math.floor(botH * 0.30)) + 'px Arial';
             ctx.fillStyle = 'rgba(255,230,100,0.9)';
             ctx.textAlign = 'center';
             ctx.fillText('🏆 ' + juego.record, cx, botY);
@@ -751,6 +761,7 @@ var juego = {
     // empieza otra vez por el primer color.
     reproducirSecuencia: function () {
         juego.estado = 'mostrando';
+        juego.redibujar();
 
         function esperar() {
             if (juego.bloqueado()) { setTimeout(esperar, 100); } else { empezar(); }
@@ -764,26 +775,32 @@ var juego = {
             tras(juego.msInicial, function () { color(0); });
         }
         function color(i) {
-            if (i >= juego.Secuencia.length) { final(); return; }
             juego.play(juego.Secuencia[i]);
             juego.draw(juego.Secuencia[i]);
             tras(juego.msEncendido, function () {
                 juego.draw(-1);
-                tras(juego.msApagado, function () { color(i + 1); });
-            });
-        }
-        function final() {
-            tras(juego.msVacioFinal, function () {
-                juego.play(8);
-                juego.draw(-2);
-                tras(juego.msDestelloFinal, function () {
-                    juego.draw(-1);
+                if (i + 1 < juego.Secuencia.length) {
+                    tras(juego.msApagado, function () { color(i + 1); });
+                } else {
+                    // El turno empieza en cuanto se apaga el último color.
                     juego.estado = 'turno';
-                });
+                    juego.redibujar();
+                }
             });
         }
 
         empezar();
+    },
+
+    // Lo que se lee bajo el título: quién tiene el turno.
+    textoEstado: function () {
+        switch (juego.estado) {
+            case 'demo':
+            case 'mostrando': return 'Observa';
+            case 'turno':     return 'Tu turno';
+            case 'acierto':   return '¡Bien!';
+            default:          return '';
+        }
     },
 
     play: function (id) {
@@ -871,13 +888,14 @@ var juego = {
 
         if (juego.Indice + 1 >= juego.Secuencia.length) {
             juego.estado = 'acierto';
+            juego.redibujar();
             setTimeout(function () {
                 juego.Secuencia.push(juego.Random3());
                 juego.Indice = -1;
                 juego.animarAcierto(function () {
                     juego.reproducirSecuencia();
                 });
-            }, 1000);
+            }, juego.msTrasAcierto);
         }
     },
 
