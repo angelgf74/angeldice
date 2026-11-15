@@ -27,6 +27,14 @@ module.exports = function (context) {
         return;
     }
 
+    // Si Cordova cambia la plantilla y falta alguno de los dos puntos de anclaje, mejor
+    // parar el build que compilar sin modo inmersivo sin que nadie se entere.
+    ['import android.os.Bundle;', 'loadUrl(launchUrl);'].forEach(function (ancla) {
+        if (!src.includes(ancla)) {
+            throw new Error('[immersive] no se encuentra "' + ancla + '" en MainActivity.java');
+        }
+    });
+
     // --- Añadir imports ---
     src = src.replace(
         'import android.os.Bundle;',

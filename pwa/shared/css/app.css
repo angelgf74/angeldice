@@ -9,7 +9,7 @@ html, body {
     height: 100%;
     overflow: hidden;
     background: #4682B4;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
@@ -24,7 +24,9 @@ html, body {
     touch-action: none;
 }
 
-/* Modal */
+/* Diálogos: fondo azul oscuro, como el círculo central del tablero. Contrastes
+   calculados: texto #d6e4ff sobre #0f2247, 12:1; blanco sobre #24407a, 10:1;
+   blanco sobre #1f7a1f, 5,4:1; blanco sobre #1565c0, 5,7:1. */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -41,9 +43,9 @@ html, body {
 }
 
 .modal {
-    background: #fff;
-    border: 2px solid #000;
-    border-radius: 8px;
+    background: #0f2247;
+    border: 0;
+    border-radius: 16px;
     min-width: 280px;
     max-width: min(90vw, 480px);
     width: 100%;
@@ -52,21 +54,16 @@ html, body {
 }
 
 .modal-title {
-    background: #1e90ff;
     color: #fff;
     font-size: 1.15rem;
     font-weight: bold;
-    padding: 12px 16px;
-    border-bottom: 2px solid #000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    padding: 18px 20px 4px;
 }
 
 .modal-content {
-    padding: 16px;
+    padding: 8px 20px 16px;
     font-size: 0.95rem;
-    color: #222;
+    color: #d6e4ff;
     max-height: 55vh;
     overflow-y: auto;
     line-height: 1.5;
@@ -86,94 +83,120 @@ html, body {
 
 .modal-content strong {
     font-size: 1.1rem;
+    color: #fff;
 }
 
 .modal-content em {
-    color: #444;
+    color: #9fc0ff;
 }
 
-.modal-content center h1 {
-    font-size: 1.4rem;
-    color: #cc2200;
-    margin-bottom: 8px;
+.nota {
+    color: #9fb4dd;
+    font-size: 0.82rem;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.nuevo-record {
+    font-weight: bold;
+    margin-top: 8px;
+    color: #ffd700;
+}
+
+.record {
+    text-align: center;
+    padding: 12px 0;
+}
+
+.record-num {
+    color: #ffd700;
+    font-size: 4rem;
+    font-weight: bold;
+    line-height: 1;
+    margin: 0 0 10px;
 }
 
 .modal-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    padding: 10px 14px;
-    background: #f0f0f0;
-    border-top: 1px solid #ccc;
+    padding: 8px 20px 20px;
 }
 
 .modal-btn {
+    min-height: 48px;
     padding: 8px 22px;
-    border: 2px solid #555;
-    border-radius: 5px;
+    border: 0;
+    border-radius: 12px;
+    font-family: inherit;
     font-size: 0.95rem;
     font-weight: bold;
     cursor: pointer;
-    background: #e0e0e0;
-    color: #222;
+    background: #24407a;
+    color: #fff;
     touch-action: manipulation;
     transition: background 0.1s, transform 0.1s;
 }
 
 .modal-btn:hover,
 .modal-btn:active {
-    background: #c8c8c8;
+    background: #2f52a0;
     transform: scale(0.97);
 }
 
 .modal-btn.btn-green {
-    background: #2e8b2e;
-    color: #fff;
-    border-color: #1a5c1a;
+    background: #1f7a1f;
 }
 
 .modal-btn.btn-green:hover,
 .modal-btn.btn-green:active {
-    background: #3aaa3a;
+    background: #1a691a;
 }
 
 .modal-btn.btn-share {
     background: #1565c0;
-    color: #fff;
-    border-color: #0d47a1;
 }
 
 .modal-btn.btn-share:hover,
 .modal-btn.btn-share:active {
-    background: #1976d2;
+    background: #1258a8;
+}
+
+/* Selector del número de cuadrantes */
+.nq-sel {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
 }
 
 .nq-btn {
     width: 44px;
     height: 44px;
-    border: 2px solid #555;
+    border: 0;
     border-radius: 8px;
+    font-family: inherit;
     font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
-    background: #e0e0e0;
-    color: #222;
+    background: #24407a;
+    color: #fff;
     touch-action: manipulation;
     transition: background 0.1s;
 }
 
 .nq-btn:hover,
 .nq-btn:active {
-    background: #c8c8c8;
+    background: #2f52a0;
 }
 
 .nq-btn.nq-active {
-    background: #004CB3;
-    color: #fff;
-    border-color: #003080;
+    background: #ffd700;
+    color: #0f2247;
 }
 
 .nq-btn.nq-active:hover,
 .nq-btn.nq-active:active {
-    background: #1565c0;
+    background: #ffe24d;
 }

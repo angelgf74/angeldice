@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iconos de Angel Dice</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #888; color: #111; padding: 16px; }
+        figure { display: inline-block; margin: 8px; padding: 8px; background: #ccc; vertical-align: top; }
+        canvas { display: block; max-width: 192px; height: auto; background: repeating-conic-gradient(#fff 0% 25%, #ddd 0% 50%) 0 0 / 16px 16px; }
+        figcaption { font-size: 12px; margin-top: 6px; max-width: 192px; overflow-wrap: anywhere; }
+    </style>
+</head>
+<body>
+    <!--
+        Genera todos los PNG de iconos a partir de pwa/favicon.svg, que es el único original.
+        Uso:  node pruebas/servidor.mjs . 8765   y abrir  http://localhost:8765/pruebas/iconos.html
+        Cada enlace descarga un PNG; el texto dice en qué carpeta va.
+        «escala» es la parte del lado que ocupa el dibujo, centrado; «fondo» rellena todo el
+        cuadrado (los iconos enmascarables y adaptativos se recortan, y necesitan fondo a
+        sangre y el dibujo dentro de la zona segura).
+    -->
+    <h1>Iconos de Angel Dice</h1>
+    <p>Generados desde <code>pwa/favicon.svg</code>. Pulsa cada nombre para descargar el PNG.</p>
+    <div id="iconos"></div>
+
+    <script>
+        var AZUL = '#004CB3';
+        var ICONOS = [
+            { fichero: 'pwa/icons/icon-192.png',                                 lado: 192, escala: 1 },
+            { fichero: 'pwa/icons/icon-512.png',                                 lado: 512, escala: 1 },
+            { fichero: 'pwa/icons/icon-maskable-512.png',                        lado: 512, escala: 0.8,  fondo: AZUL },
+            { fichero: 'android/res/icon/android/icono-36.png',                  lado: 36,  escala: 1 },
+            { fichero: 'android/res/icon/android/icono-48.png',                  lado: 48,  escala: 1 },
+            { fichero: 'android/res/icon/android/icono-72.png',                  lado: 72,  escala: 1 },
+            { fichero: 'android/res/icon/android/icono-96.png',                  lado: 96,  escala: 1 },
+            { fichero: 'android/res/icon/android/icono-144.png',                 lado: 144, escala: 1 },
+            { fichero: 'android/res/icon/android/icono-192.png',                 lado: 192, escala: 1 },
+            { fichero: 'android/res/icon/android/adaptativo-frente.png',         lado: 432, escala: 0.64 },
+            { fichero: 'android/res/icon/android/adaptativo-fondo.png',          lado: 432, escala: 0,    fondo: AZUL },
+            { fichero: 'android/playstore/listing/es-419/images/icon.png',       lado: 512, escala: 1,    fondo: AZUL }
+        ];
+
+        // El SVG no declara tamaño: se le pone el del destino para que se rasterice nítido.
+        function cargarSvg(texto, lado) {
+            return new Promise(function (hecho, error) {
+                var conTamano = texto.replace('<svg ', '<svg width="' + lado + '" height="' + lado + '" ');
+                var img = new Image();
+                img.onload  = function () { hecho(img); };
+                img.onerror = error;
+                img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(conTamano);
+            });
+        }
+
+        function pintar(texto, icono) {
+            var canvas = document.createElement('canvas');
+            canvas.width = canvas.height = icono.lado;
+            var ctx = canvas.getContext('2d');
+            if (icono.fondo) {
+                ctx.fillStyle = icono.fondo;
+                ctx.fillRect(0, 0, icono.lado, icono.lado);
+            }
+            var lado = Math.round(icono.lado * icono.escala);
+            var fin = lado
+                ? cargarSvg(texto, lado).then(function (img) {
+                    var margen = (icono.lado - lado) / 2;
+                    ctx.drawImage(img, margen, margen, lado, lado);
+                })
+                : Promise.resolve();
+            return fin.then(function () {
+                var figura = document.createElement('figure');
+                var enlace = document.createElement('a');
+                enlace.href = canvas.toDataURL('image/png');
+                enlace.download = icono.fichero.split('/').pop();
+                enlace.dataset.fichero = icono.fichero;
+                enlace.textContent = icono.fichero + ' (' + icono.lado + ' px)';
+                var pie = document.createElement('figcaption');
+                pie.appendChild(enlace);
+                figura.appendChild(canvas);
+                figura.appendChild(pie);
+                document.getElementById('iconos').appendChild(figura);
+            });
+        }
+
+        fetch('../pwa/favicon.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (texto) {
+                return ICONOS.reduce(function (antes, icono) {
+                    return antes.then(function () { return pintar(texto, icono); });
+                }, Promise.resolve());
+            })
+            .then(function () { document.body.dataset.listo = 'si'; })
+            .catch(function (e) { document.body.dataset.listo = 'error: ' + e; });
+    </script>
+</body>
+</html>
