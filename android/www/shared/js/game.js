@@ -228,25 +228,13 @@ var juego = {
 
         var canvas = document.getElementById('t1');
 
-        canvas.addEventListener('click', function (e) {
+        // Un solo evento para ratón, dedo y lápiz, y cuenta al bajar, no al soltar.
+        // Las coordenadas van en píxeles CSS relativos al canvas; el CSS ya le pone
+        // touch-action: none, así que no hace falta preventDefault.
+        canvas.addEventListener('pointerdown', function (e) {
             var rect = canvas.getBoundingClientRect();
-            var sx   = canvas.width  / rect.width;
-            var sy   = canvas.height / rect.height;
-            juego.handleClick((e.clientX - rect.left) * sx, (e.clientY - rect.top) * sy);
+            juego.handleClick(e.clientX - rect.left, e.clientY - rect.top);
         });
-
-        canvas.addEventListener('touchstart', function (e) {
-            e.preventDefault();
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', function (e) {
-            e.preventDefault();
-            var touch = e.changedTouches[0];
-            var rect  = canvas.getBoundingClientRect();
-            var sx    = canvas.width  / rect.width;
-            var sy    = canvas.height / rect.height;
-            juego.handleClick((touch.clientX - rect.left) * sx, (touch.clientY - rect.top) * sy);
-        }, { passive: false });
 
         juego.ajustarCanvas();
         window.addEventListener('resize', function () {
