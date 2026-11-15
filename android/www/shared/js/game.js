@@ -718,10 +718,16 @@ var juego = {
         var canvas = document.getElementById('t1');
         var W = window.innerWidth;
         var H = window.innerHeight;
-        canvas.width        = W;
-        canvas.height       = H;
+        // El canvas tiene tantos píxeles como la pantalla (hasta 3 por píxel CSS, para
+        // no gastar memoria de más) y se pinta escalado: todo el código de dibujo y de
+        // toques trabaja en píxeles CSS, con juego.ancho y juego.alto.
+        var dpr = Math.min(window.devicePixelRatio || 1, 3);
+        juego.dpr = dpr;
+        canvas.width        = Math.round(W * dpr);
+        canvas.height       = Math.round(H * dpr);
         canvas.style.width  = W + 'px';
         canvas.style.height = H + 'px';
+        canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
         juego.ancho = W;
         juego.alto  = H;
     },
