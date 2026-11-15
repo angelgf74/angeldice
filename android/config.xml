@@ -4,13 +4,7 @@
     <description>Angel Dice. Repite la secuencia de colores.</description>
     <author email="angelgf@gmail.com" href="">Angel Galan Fernandez</author>
     <content src="index.html" />
-    <access origin="*" />
-    <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
-    <allow-intent href="tel:*" />
-    <allow-intent href="sms:*" />
-    <allow-intent href="mailto:*" />
-    <allow-intent href="geo:*" />
     <preference name="orientation" value="portrait" />
     <preference name="android-minSdkVersion" value="24" />
     <preference name="android-targetSdkVersion" value="36" />
