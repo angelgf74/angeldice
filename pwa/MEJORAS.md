@@ -6,7 +6,7 @@
 
 ## Jugabilidad
 
-- [ ] **Dificultad progresiva** — reducir `tIntervalo` y/o `pasosEncendido` cada N niveles para que la secuencia se reproduzca más rápido conforme avanza la partida. Actualmente son constantes (100 ms y 8 pasos).
+- [ ] **Dificultad progresiva** — reducir `msEncendido` y/o `msApagado` cada N niveles para que la secuencia se reproduzca más rápido conforme avanza la partida. Actualmente son constantes (450 ms y 150 ms).
 - [ ] **Modos de dificultad** — permitir elegir al inicio entre Fácil / Normal / Difícil, con distintos valores de velocidad inicial y pendiente de aceleración.
 - [ ] **Top 5 locales** — guardar en `localStorage` los 5 mejores récords (nivel + fecha) en lugar de un único récord. Mostrarlo en una pantalla de estadísticas.
 - [ ] **Feedback háptico** — llamar a `navigator.vibrate()` al acertar (pulso corto) y al fallar (pulso largo) en dispositivos móviles que soporten la Vibration API.
@@ -27,6 +27,9 @@
 - [x] **Animación de acierto completo** — efecto visual más llamativo cuando se completa la secuencia (actualmente solo se encienden los cuatro cuadrantes), por ejemplo una onda de luz o partículas sobre el canvas.
 - [x] **Prompt de instalación PWA** — capturar el evento `beforeinstallprompt` y ofrecer un botón "Instalar app" en la barra inferior cuando esté disponible.
 - [x] **Compartir récord** — botón que use la Web Share API (`navigator.share`) para compartir el récord alcanzado cuando la partida termina.
+- [x] **Indicador de turno** — texto «Observa» / «Tu turno» / «¡Bien!» bajo el título, según `juego.estado`.
+- [x] **Reinicio directo** — «Jugar otra vez» empieza la partida sin diálogo ni demo; la demo de los cuadrantes se ve una vez por sesión.
+- [x] **Color correcto al fallar** — parpadea el color que tocaba antes del diálogo de fin de partida, que avisa si hay récord nuevo.
 - [x] **Indicador de audio más claro** — mostrar texto breve ("Sonido ON/OFF") junto al icono de campana, al menos durante 2 s tras pulsarlo, para que el cambio de estado sea inequívoco.
 
 ---

@@ -39,3 +39,22 @@ test('index.html pide los assets sin query, igual que en PRECACHE', () => {
         assert.ok(precache.includes('./' + url), `${url} no está en PRECACHE`);
     }
 });
+
+test('las imágenes para compartir el enlace llevan URL absoluta', () => {
+    const html = leer('index.html');
+    for (const meta of ['og:image', 'twitter:image']) {
+        const m = html.match(new RegExp(`<meta (?:property|name)="${meta}" content="([^"]+)"`));
+        assert.equal(m[1], 'https://angeldice.angelgf.com.es/icons/icon-512.png');
+    }
+    assert.match(html, /<meta property="og:url" content="https:\/\/angeldice\.angelgf\.com\.es\/">/);
+});
+
+test('ningún script de terceros bloquea el arranque', () => {
+    const externos = [...leer('index.html').matchAll(/<script\b[^>]*src="https:[^>]*>/g)].map(m => m[0]);
+    assert.equal(externos.length, 2);
+    for (const etiqueta of externos) assert.match(etiqueta, /\basync\b/, etiqueta);
+});
+
+test('la página deja ampliar el texto', () => {
+    assert.doesNotMatch(leer('index.html'), /user-scalable=no/);
+});

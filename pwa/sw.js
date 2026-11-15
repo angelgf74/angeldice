@@ -27,8 +27,16 @@ self.addEventListener('activate', e =>
     )
 );
 
-self.addEventListener('fetch', e =>
+// Solo se atienden las peticiones GET de este mismo origen; el resto (anuncios,
+// analítica) va a la red sin pasar por aquí. Una navegación puede traer query
+// (?fbclid=..., ?utm_...): se ignora al buscar en la caché, para que el juego cargue sin
+// red también desde un enlace compartido. Los assets se buscan con su URL exacta.
+self.addEventListener('fetch', e => {
+    const peticion = e.request;
+    if (peticion.method !== 'GET') return;
+    if (new URL(peticion.url).origin !== self.location.origin) return;
+    const opciones = peticion.mode === 'navigate' ? { ignoreSearch: true } : undefined;
     e.respondWith(
-        caches.match(e.request).then(cached => cached || fetch(e.request))
-    )
-);
+        caches.match(peticion, opciones).then(cached => cached || fetch(peticion))
+    );
+});

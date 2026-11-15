@@ -89,8 +89,9 @@ function crearContexto2d() {
 }
 
 export function cargarJuego(opciones = {}) {
+    // documentoListo: game.js se carga con el documento ya analizado (readyState 'complete').
     const { android = false, audio: estadoAudio = 'running', compartir = false,
-            ancho = 390, alto = 844, dpr = 1 } = opciones;
+            ancho = 390, alto = 844, dpr = 1, documentoListo = false } = opciones;
     const roto = opciones.almacen === 'roto';
     const almacen = roto ? {} : { ...(opciones.almacen || {}) };
 
@@ -125,7 +126,7 @@ export function cargarJuego(opciones = {}) {
     const disparar = (oyentes, tipo) => (oyentes[tipo] || []).slice().forEach((fn) => fn({ type: tipo }));
     const documento = {
         hidden: false,
-        readyState: 'loading',
+        readyState: documentoListo ? 'complete' : 'loading',
         getElementById: (id) => elementos[id] || null,
         createElement: () => crearElemento(),
         querySelectorAll: () => [],
@@ -219,13 +220,17 @@ export function cargarJuego(opciones = {}) {
 
     // ── Ayudas para las pruebas ──────────────────────────────────────────────
     let arrancado = false;
-    const arrancar = () => {
+    // hasta: 'load' (por defecto) dispara DOMContentLoaded y load; 'DOMContentLoaded',
+    // solo el primero, como cuando un script de terceros aún no ha terminado de cargar.
+    const arrancar = (hasta = 'load') => {
         if (arrancado) return;
         arrancado = true;
         disparar(oyentesDoc, 'DOMContentLoaded');
         disparar(oyentesVentana, 'DOMContentLoaded');
-        documento.readyState = 'complete';
-        disparar(oyentesVentana, 'load');
+        if (hasta === 'load') {
+            documento.readyState = 'complete';
+            disparar(oyentesVentana, 'load');
+        }
         if (android) disparar(oyentesDoc, 'deviceready');
         reloj.avanzar(1600);
     };

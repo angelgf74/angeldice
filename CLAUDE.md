@@ -53,7 +53,7 @@ Cada proyecto accede a estos ficheros mediante una **junction de directorio** (`
 
 Todo el juego vive en `shared/js/game.js` con tres objetos globales:
 
-- **`Modal`** — sistema de diálogos: `Modal.show(options)` / `Modal.hide()`. Soporta `autoClose: 'btnKey|ms'` para cierre automático. Incrementa/decrementa `juego.enDialogo` para bloquear los toques mientras hay un diálogo abierto.
+- **`Modal`** — sistema de diálogos: `Modal.show(options)` / `Modal.hide()`. Soporta `autoClose: 'btnKey|ms'` para cierre automático (hoy no lo usa ningún diálogo). El título se escribe como texto; el contenido, como HTML. Incrementa/decrementa `juego.enDialogo` para bloquear los toques mientras hay un diálogo abierto.
 
 - **`Sonido`** — sintetiza audio mediante la Web Audio API (sin ficheros externos). `play(id)`: 0–7 = tono sinusoidal del color, de `392 + 62 × id` Hz; 8 = arpegio ascendente de 4 notas (acierto); 9 = barrido sawtooth descendente (fallo). Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles; mientras el contexto no esté en marcha, `play` pide reanudarlo y descarta el tono (no lo guarda para después).
 
@@ -63,14 +63,14 @@ Todo el juego vive en `shared/js/game.js` con tres objetos globales:
 
 | Clave | Valor |
 |---|---|
-| `conaudio` | `'true'`/`'false'` |
-| `ayudaaliniciar` | `'true'`/`'false'` (se muestra solo la primera vez) |
-| `record` | número máximo de nivel alcanzado |
+| `conaudio` | `'true'`/`'false'`; sin valor, sonido activado |
+| `ayudaaliniciar` | `'true'`/`'false'`: la primera vez el diálogo de inicio explica cómo se juega |
+| `record` | máximo de niveles superados (longitud de la secuencia menos uno) |
 | `numcuadrantes` | número de sectores activos (3–8, defecto 4) |
 
 ### Service Worker (`pwa/sw.js`, solo PWA)
 
-Estrategia cache-first. La lista `PRECACHE` debe incluir todos los assets estáticos. La constante `CACHE` la cambia `srv subir` en cada release (ver Despliegue), y así se invalidan las cachés antiguas de los clientes.
+Estrategia cache-first, solo para peticiones GET del mismo origen; las de terceros (anuncios, analítica) no se interceptan. La lista `PRECACHE` debe incluir todos los assets estáticos (`pruebas/pwa.test.mjs` lo comprueba). Las navegaciones se buscan en la caché ignorando la query (`/?fbclid=…` carga sin red); los assets, con su URL exacta. La constante `CACHE` la cambia `srv subir` en cada release (ver Despliegue), y así se invalidan las cachés antiguas de los clientes.
 
 `index.html` pide cada asset con la misma URL que tiene en `PRECACHE`, sin `?v=` ni otra query: `caches.match` compara también la query, y si no coincide el fichero nunca sale de la caché y sin red el juego no carga (pasaba con `game.js?v=1.0.0`).
 
@@ -101,4 +101,4 @@ en `android/playstore/listing/` (`gplay ficha descargar` / `publicar`).
 ## Integraciones externas (PWA)
 
 - **Google AdSense** (`ca-pub-8600791204816041`) — script async en `<head>` de `pwa/index.html`.
-- **Web Analytics propio** — tracker en `https://webanalytics-api.angelgf.com.es/tracker.js` con site ID `8e7cef69-3f4f-4ec6-bef7-9fe7a1c3477f`, cargado al final del `<body>`.
+- **Web Analytics propio** — tracker en `https://webanalytics-api.angelgf.com.es/tracker.js` con site ID `8e7cef69-3f4f-4ec6-bef7-9fe7a1c3477f`, cargado con `async` al final del `<body>`. El juego arranca en `DOMContentLoaded`, sin esperar a ninguno de los dos.

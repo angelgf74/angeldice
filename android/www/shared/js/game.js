@@ -1146,6 +1146,10 @@ var juego = {
     }
 };
 
-window.addEventListener('load', function () {
+// Arranca en cuanto el documento está analizado, sin esperar al evento load, que tarda
+// lo que tarden en cargar los scripts de terceros (anuncios y analítica).
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { juego.inicializar(); });
+} else {
     juego.inicializar();
-});
+}
