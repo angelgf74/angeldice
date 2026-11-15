@@ -82,8 +82,12 @@ var Sonido = {
     // id 0-7: colores; 8: acierto; 9: fallo
     play: function (id) {
         if (!juego.conAudio || !Sonido.ctx) return;
-        if (Sonido.ctx.state === 'suspended') {
-            Sonido.ctx.resume().then(function () { Sonido.play(id); });
+        if (Sonido.ctx.state !== 'running') {
+            // Sin un gesto del usuario el navegador deja el audio suspendido. Se pide
+            // reanudarlo y este tono se pierde: si se guardara para después, todos los
+            // acumulados sonarían a la vez al reanudarse.
+            var reanudado = Sonido.ctx.resume();
+            if (reanudado && reanudado.catch) reanudado.catch(function () {});
             return;
         }
 
@@ -164,9 +168,12 @@ var juego = {
     alto: 0,
 
     enDialogo: 0,
-    tIntervalo: 100,
-    pasosEncendido: 8,
-    pasosApagado: 2,
+    // Tiempos de la reproducción de la secuencia, en milisegundos.
+    msInicial: 300,         // apagado antes del primer color
+    msEncendido: 700,       // cada color encendido
+    msApagado: 300,         // apagado entre colores
+    msVacioFinal: 1000,     // apagado tras el último color
+    msDestelloFinal: 1000,  // todos encendidos antes del turno del jugador
 
     record: 0,
 
@@ -230,7 +237,7 @@ var juego = {
         }, { passive: false });
 
         window.addEventListener('resize', function () {
-            juego.draw(-1, 0);
+            juego.draw(-1);
         });
 
         if (!_isAndroid) {
@@ -344,7 +351,7 @@ var juego = {
         // Toggle audio (abajo-derecha)
         if (y > H - botH && x > W - slot) {
             juego.setConAudio(!juego.conAudio);
-            juego.draw(-1, 0);
+            juego.draw(-1);
             return;
         }
 
@@ -360,7 +367,7 @@ var juego = {
             p.prompt();
             p.userChoice.then(function () {
                 juego._installPrompt = null;
-                juego.draw(-1, 0);
+                juego.draw(-1);
             });
             return;
         }
@@ -467,7 +474,7 @@ var juego = {
         juego._audioLabelTimer = setTimeout(function () {
             juego._audioLabel = '';
             juego._audioLabelTimer = null;
-            juego.draw(-1, 0);
+            juego.draw(-1);
         }, 2000);
     },
 
@@ -493,13 +500,9 @@ var juego = {
         ctx.fill();
     },
 
-    draw: function (color, paso) {
-        if (paso === 0) {
-            if (color !== null && color !== undefined && color !== -1) {
-                juego.play(color);
-            }
-        }
-
+    // Solo pinta. color: índice del cuadrante encendido, -1 ninguno, -2 todos.
+    // Quien enciende un color pide antes su sonido con juego.play(id).
+    draw: function (color) {
         var canvas = document.getElementById('t1');
         var W = window.innerWidth;
         var H = window.innerHeight;
@@ -691,36 +694,53 @@ var juego = {
         return g;
     },
 
+    // Hay un diálogo abierto o la página está en segundo plano.
+    bloqueado: function () {
+        return juego.pausa || juego.enDialogo > 0;
+    },
+
+    // Enseña la secuencia paso a paso; el tono de cada color suena al encenderse.
+    // Si al terminar un paso el juego está bloqueado, apaga y espera; al desbloquearse
+    // empieza otra vez por el primer color.
     reproducirSecuencia: function () {
         juego.estado = 'mostrando';
-        var idx  = 0;
-        var paso = 0;
-        var tid  = setInterval(function () {
-            if (juego.pausa) return;
 
-            var encendido = paso > juego.pasosApagado;
-            var c = encendido ? juego.Secuencia[idx] : -1;
-            paso++;
+        function esperar() {
+            if (juego.bloqueado()) { setTimeout(esperar, 100); } else { empezar(); }
+        }
+        function tras(ms, siguiente) {
+            setTimeout(function () {
+                if (juego.bloqueado()) { juego.draw(-1); esperar(); } else { siguiente(); }
+            }, ms);
+        }
+        function empezar() {
+            tras(juego.msInicial, function () { color(0); });
+        }
+        function color(i) {
+            if (i >= juego.Secuencia.length) { final(); return; }
+            juego.play(juego.Secuencia[i]);
+            juego.draw(juego.Secuencia[i]);
+            tras(juego.msEncendido, function () {
+                juego.draw(-1);
+                tras(juego.msApagado, function () { color(i + 1); });
+            });
+        }
+        function final() {
+            tras(juego.msVacioFinal, function () {
+                juego.play(8);
+                juego.draw(-2);
+                tras(juego.msDestelloFinal, function () {
+                    juego.draw(-1);
+                    juego.estado = 'turno';
+                });
+            });
+        }
 
-            if (paso >= juego.pasosEncendido + juego.pasosApagado) {
-                paso = 0;
-                idx++;
-            }
-            if (idx === juego.Secuencia.length + 1) c = -2;
-
-            juego.draw(c, paso);
-
-            if (idx > juego.Secuencia.length + 1) {
-                juego.draw(-1, paso);
-                clearInterval(tid);
-                juego.estado = 'turno';
-            }
-        }, juego.tIntervalo);
+        empezar();
     },
 
     play: function (id) {
         if (!juego.conAudio) return;
-        if (id === -2) id = 8;
         Sonido.play(id);
     },
 
@@ -730,13 +750,14 @@ var juego = {
         var i = 0;
         function paso() {
             if (i >= N) {
-                juego.draw(-1, 1);
+                juego.draw(-1);
                 if (callback) callback();
                 return;
             }
-            juego.draw(i, 0);
+            juego.play(i);
+            juego.draw(i);
             setTimeout(function () {
-                juego.draw(-1, 1);
+                juego.draw(-1);
                 setTimeout(function () { i++; paso(); }, 100);
             }, 400);
         }
@@ -748,7 +769,7 @@ var juego = {
         juego.Secuencia = [juego.Random3()];
         juego.Indice    = -1;
         juego.estado    = 'espera';
-        juego.draw(-1, 0);
+        juego.draw(-1);
         Modal.show({
             title: '⚠️ Atento',
             content: '<center><h1>⚠️ ¡ATENTO!</h1><p>Va a empezar la partida</p></center>',
@@ -771,7 +792,8 @@ var juego = {
 
         juego.Indice++;
         var correcto = juego.Secuencia[juego.Indice] === color;
-        juego.draw(color, 0);
+        juego.play(color);
+        juego.draw(color);
 
         if (correcto) {
             if (juego.Indice + 1 >= juego.Secuencia.length) {
@@ -784,7 +806,7 @@ var juego = {
                     });
                 }, 1000);
             } else {
-                setTimeout(function () { juego.draw(-1, 0); }, 1000);
+                setTimeout(function () { juego.draw(-1); }, 1000);
             }
         } else {
             juego.estado = 'fin';
@@ -926,7 +948,8 @@ var juego = {
     },
 
     animarAcierto: function (callback) {
-        juego.draw(-2, 0);
+        juego.play(8);
+        juego.draw(-2);
         var canvas = document.getElementById('t1');
         var ctx    = canvas.getContext('2d');
         var cx     = juego.centroX;
@@ -939,7 +962,7 @@ var juego = {
             if (!start) start = ts;
             var p = Math.min((ts - start) / dur, 1);
 
-            juego.draw(-2, 1);
+            juego.draw(-2);
 
             for (var i = 0; i < 3; i++) {
                 var pi    = (p + i / 3) % 1;

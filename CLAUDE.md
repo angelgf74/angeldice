@@ -55,9 +55,9 @@ Todo el juego vive en `shared/js/game.js` con tres objetos globales:
 
 - **`Modal`** — sistema de diálogos: `Modal.show(options)` / `Modal.hide()`. Soporta `autoClose: 'btnKey|ms'` para cierre automático. Incrementa/decrementa `juego.enDialogo` para bloquear los toques mientras hay un diálogo abierto.
 
-- **`Sonido`** — sintetiza audio mediante la Web Audio API (sin ficheros externos). `play(id)`: 0–3 = tono sinusoidal por color (392/330/262/220 Hz), 4 = arpeggio ascendente de 4 notas, 5 = barrido sawtooth descendente de fallo. Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles.
+- **`Sonido`** — sintetiza audio mediante la Web Audio API (sin ficheros externos). `play(id)`: 0–7 = tono sinusoidal del color, de `392 + 62 × id` Hz; 8 = arpegio ascendente de 4 notas (acierto); 9 = barrido sawtooth descendente (fallo). Requiere `Sonido.unlock()` en el primer gesto del usuario para desbloquear el contexto de audio en móviles; mientras el contexto no esté en marcha, `play` pide reanudarlo y descarta el tono (no lo guarda para después).
 
-- **`juego`** — lógica completa del juego. El canvas `#t1` ocupa toda la pantalla; `juego.draw(color, paso)` redibuja todo en cada frame. Los cuatro cuadrantes (azul=0, amarillo=1, verde=2, rojo=3) se mapean a sectores del arco: `idx = (y < cy) ? ((x < cx) ? 2 : 3) : ((x < cx) ? 1 : 0)`.
+- **`juego`** — lógica completa del juego. El canvas `#t1` ocupa toda la pantalla; `juego.draw(color)` redibuja todo y solo pinta (quien enciende un color pide antes su sonido con `juego.play(id)`). `juego.estado` dice de quién es el turno (`espera`, `demo`, `mostrando`, `turno`, `acierto`, `fin`): el tablero solo acepta toques en `turno`. Los cuatro cuadrantes (azul=0, amarillo=1, verde=2, rojo=3) se mapean a sectores del arco: `idx = (y < cy) ? ((x < cx) ? 2 : 3) : ((x < cx) ? 1 : 0)`.
 
 ### Estado persistido en `localStorage` (`shared/js/game.js`)
 
