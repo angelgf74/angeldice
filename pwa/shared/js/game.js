@@ -197,6 +197,8 @@ var juego = {
     adModInterstitialId: 'ca-app-pub-8600791204816041/7753322005',
     _banner:             null,
     _interstitial:       null,
+    _derrotasSinAnuncio: 0,     // derrotas desde el último intersticial
+    _ultimoAnuncio:      0,     // instante (ms) del último intersticial o del arranque
 
     inicializar: function () {
         if (!_isAndroid) {
@@ -251,12 +253,10 @@ var juego = {
                 juego._installPrompt = null;
             });
         } else {
-            var initAdMob = function () { juego.InicializaPubli(); };
-            if (window.admob) {
-                initAdMob();
-            } else {
-                document.addEventListener('deviceready', initAdMob, false);
-            }
+            // Siempre en deviceready: antes, el plugin puede no estar listo. Cordova llama
+            // al instante a quien se registra después de que el evento haya ocurrido.
+            juego._ultimoAnuncio = Date.now();
+            document.addEventListener('deviceready', function () { juego.InicializaPubli(); }, false);
         }
 
         setTimeout(function () {
@@ -316,6 +316,19 @@ var juego = {
             }
         }
         juego.CargarInterstitial();
+    },
+
+    // Límite del intersticial. Cuenta esta derrota y dice si toca anuncio: solo con 3
+    // niveles superados o más, cada 3 derrotas como mínimo y con 90 s desde el anterior
+    // (o desde el arranque). Si toca, pone el contador a cero.
+    tocaIntersticial: function (superados, ahora) {
+        juego._derrotasSinAnuncio++;
+        if (superados < 3) return false;
+        if (juego._derrotasSinAnuncio < 3) return false;
+        if (ahora - juego._ultimoAnuncio < 90000) return false;
+        juego._derrotasSinAnuncio = 0;
+        juego._ultimoAnuncio      = ahora;
+        return true;
     },
 
     // ── UI handlers ──────────────────────────────────────────────────────────
@@ -955,8 +968,17 @@ var juego = {
         });
     },
 
+    // «Jugar otra vez». En Android, si toca intersticial, se muestra aquí (nunca en el
+    // momento del fallo) y la partida siguiente espera en el diálogo «Jugar», que queda
+    // debajo del anuncio: así no empieza sola mientras el anuncio está en pantalla ni
+    // depende de que el plugin avise de que se ha cerrado.
     reiniciar: function (superados) {
-        juego.iniciarSecuencia(false);
+        if (_isAndroid && juego.tocaIntersticial(superados, Date.now())) {
+            juego.MostrarPubliInterstitial();
+            juego.iniciarSecuencia(true);
+        } else {
+            juego.iniciarSecuencia(false);
+        }
     },
 
     Random3: function () {
