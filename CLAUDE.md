@@ -14,14 +14,18 @@ Angel Dice es un juego de memoria tipo Simon Says. El repositorio contiene dos p
 Para trabajar con la PWA (Service Worker requiere HTTPS o localhost):
 
 ```bash
-cd pwa
-# Con Python
-python -m http.server 8080
-# Con Node
-npx serve .
+node pruebas/servidor.mjs pwa 8765
 ```
 
-Abrir `http://localhost:8080` en el navegador. El Service Worker solo se registra bajo HTTPS o localhost; en `file://` no funciona.
+Abrir `http://localhost:8765` en el navegador. El servidor no tiene dependencias y quita de los `.html` los scripts de terceros (AdSense y analítica) para no generar visitas al probar; con `?real=1` los sirve tal cual. El Service Worker solo se registra bajo HTTPS o localhost; en `file://` no funciona.
+
+## Pruebas
+
+```bash
+node --test "pruebas/*.test.mjs"
+```
+
+`pruebas/arnes.mjs` carga `shared/js/game.js`, sin tocarlo, en un contexto de `node:vm` con navegador y reloj simulados; las pruebas avanzan el tiempo a mano. Solo usan módulos de Node: no hay `package.json`. `pruebas/` no se publica.
 
 ## Despliegue (PWA)
 

@@ -145,7 +145,7 @@ test('el reloj simulado ejecuta los temporizadores en orden', () => {
 
 - [ ] **Step 2: Ejecutarla y ver que falla**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: FAIL, `Cannot find module ... arnes.mjs`
 
 - [ ] **Step 3: Implementar `cargarJuego` en `pruebas/arnes.mjs`**
@@ -154,7 +154,7 @@ Con `node:vm`: `vm.createContext` con `window`, `document`, `localStorage`, `nav
 
 - [ ] **Step 4: Ejecutar y ver que pasa**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 2 pruebas, 0 fallos
 
 - [ ] **Step 5: Crear `pruebas/servidor.mjs`**
@@ -166,7 +166,7 @@ Expected: el juego carga y la pestaña Red no muestra peticiones a `googlesyndic
 
 - [ ] **Step 6: Corregir `CLAUDE.md`**
 
-En «Desarrollo local (PWA)», sustituir el bloque de Python y `npx serve` por `node pruebas/servidor.mjs pwa 8765`, y añadir una sección «Pruebas» con `node --test pruebas/`. Python no está instalado en esta máquina.
+En «Desarrollo local (PWA)», sustituir el bloque de Python y `npx serve` por `node pruebas/servidor.mjs pwa 8765`, y añadir una sección «Pruebas» con `node --test "pruebas/*.test.mjs"`. Python no está instalado en esta máquina.
 
 - [ ] **Step 7: Commit**
 
@@ -253,7 +253,7 @@ Expected: FAIL; `hastaEstado` lanza porque `juego.estado` no existe
 
 - [ ] **Step 4: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 5: Commit**
@@ -340,7 +340,7 @@ Sin `setInterval`. Orden: `msInicial` apagado; por cada color, `juego.play(c)` y
 
 - [ ] **Step 6: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 7: Corregir `CLAUDE.md`**
@@ -437,7 +437,7 @@ Expected: FAIL en las cinco
 
 - [ ] **Step 4: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 5: Commit**
@@ -570,7 +570,7 @@ Expected: FAIL en las siete
 
 - [ ] **Step 4: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos. En `turno.test.mjs`, la prueba «tras fallar…» sigue valiendo porque pulsa el último botón.
 
 - [ ] **Step 5: Añadir `.nuevo-record` a `shared/css/app.css`**
@@ -671,7 +671,7 @@ En la barra inferior, el tamaño del récord y de «Instalar» pasa a `Math.max(
 
 - [ ] **Step 6: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 7: Verlo**
@@ -702,7 +702,7 @@ Quitar `click`, `touchstart` y `touchend`. Un `pointerdown` que llama a `juego.h
 
 - [ ] **Step 2: Ejecutar las pruebas**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos (el arnés llama a `handleClick` y a `toque` directamente)
 
 - [ ] **Step 3: Probarlo con ratón y con toque emulado**
@@ -810,7 +810,7 @@ Sustituir la rama `if (window.admob)` por `document.addEventListener('deviceread
 
 - [ ] **Step 5: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 6: Commit**
@@ -913,7 +913,7 @@ Expected: FAIL, `390 !== 1170`
 
 - [ ] **Step 4: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 5: Verlo**
@@ -998,7 +998,7 @@ Todas las `ctx.font` terminan en `'px ' + juego.fuente` en lugar de `'px Arial'`
 
 - [ ] **Step 6: Ejecutar y ver que pasan**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos
 
 - [ ] **Step 7: Verlo con 4 y con 8 cuadrantes**
@@ -1057,7 +1057,7 @@ En `Modal.show`: `titleEl.textContent = options.title || ''`. Los títulos son t
 
 - [ ] **Step 4: Ejecutar las pruebas y ver los cinco diálogos**
 
-Run: `node --test pruebas/` y `node pruebas/servidor.mjs pwa 8765`
+Run: `node --test "pruebas/*.test.mjs"` y `node pruebas/servidor.mjs pwa 8765`
 Expected: 0 fallos; inicio, ayuda, configuración, récord y fin de partida se leen bien a 390×844, y la ayuda se desplaza dentro del diálogo
 
 - [ ] **Step 5: Commit**
@@ -1141,7 +1141,7 @@ En el `fetch` de `pwa/sw.js`: salir sin `respondWith` si `e.request.method !== '
 
 - [ ] **Step 4: Ejecutar las pruebas**
 
-Run: `node --test pruebas/`
+Run: `node --test "pruebas/*.test.mjs"`
 Expected: 0 fallos (el arnés dispara `DOMContentLoaded` y `load`)
 
 - [ ] **Step 5: Comprobar sin red y con red lenta**
