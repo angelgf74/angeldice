@@ -98,6 +98,12 @@ html, body {
     margin-bottom: 8px;
 }
 
+.nuevo-record {
+    font-weight: bold;
+    margin-top: 8px;
+    color: #b8860b;
+}
+
 .modal-buttons {
     display: flex;
     justify-content: flex-end;

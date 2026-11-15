@@ -182,6 +182,12 @@ var juego = {
     _audioLabel: '',
     _audioLabelTimer: null,
 
+    // La dirección que se comparte, la misma en la PWA y en Android.
+    urlPublica: 'https://angeldice.angelgf.com.es/',
+
+    msAntesDeEmpezar: 400,  // de «Jugar otra vez» a que empiece la partida siguiente
+    _demoVista: false,      // la demo de los cuadrantes se enseña una vez por sesión
+
     msToque: 250,       // lo que queda encendido el color que toca el jugador
     _encendido: -1,     // lo último que pintó draw: índice, -1 ninguno, -2 todos
     _tApagado: null,    // el único apagado pendiente de encender()
@@ -266,12 +272,7 @@ var juego = {
 
         setTimeout(function () {
             juego.mostrarSplash(function () {
-                if (juego.ayudaAlIniciar) {
-                    juego.guardar('ayudaaliniciar', 'false');
-                    juego.mostrarAyuda(function () { juego.iniciarSecuencia(true); });
-                } else {
-                    juego.iniciarSecuencia(true);
-                }
+                juego.iniciarSecuencia(true);
             });
         }, 100);
     },
@@ -430,7 +431,7 @@ var juego = {
                 '<div style="text-align:center;padding:12px 0">',
                 '<p style="font-size:4rem;font-weight:bold;line-height:1;color:#004CB3;margin:0 0 10px">',
                 juego.record + '</p>',
-                '<p style="color:#555;margin:0">nivel más alto alcanzado</p>',
+                '<p style="color:#555;margin:0">niveles superados</p>',
                 '</div>'
             ].join(''),
             buttons: { Cerrar: function () {} }
@@ -810,90 +811,146 @@ var juego = {
         paso();
     },
 
-    iniciarSecuencia: function (primera) {
+    // Prepara una partida nueva. Con conDialogo espera a que el jugador pulse «Jugar»
+    // (al arrancar la aplicación y después de un anuncio): ese toque es además el gesto
+    // que el navegador exige para dejar sonar el audio. Sin él, empieza sola enseguida.
+    iniciarSecuencia: function (conDialogo) {
         juego.numCuadrantes = juego.numCuadrantesProx;
         juego.Secuencia = [juego.Random3()];
         juego.Indice    = -1;
         juego.estado    = 'espera';
         juego.draw(-1);
+
+        if (!conDialogo) {
+            setTimeout(juego.empezar, juego.msAntesDeEmpezar);
+            return;
+        }
+
+        var primeraVez = juego.ayudaAlIniciar;
+        if (primeraVez) {
+            juego.ayudaAlIniciar = false;
+            juego.guardar('ayudaaliniciar', 'false');
+        }
         Modal.show({
-            title: '⚠️ Atento',
-            content: '<center><h1>⚠️ ¡ATENTO!</h1><p>Va a empezar la partida</p></center>',
-            autoClose: 'Aceptar|5000',
-            buttons: {
-                Aceptar: {
-                    action: function () {
-                        juego.demoCuadrantes(function () {
-                            juego.reproducirSecuencia();
-                        });
-                    },
-                    btnClass: 'btn-green'
-                }
-            }
+            title: primeraVez ? 'Cómo se juega' : 'Angel Dice',
+            content: primeraVez
+                ? [
+                    '<ul>',
+                    '<li>Mira qué colores se encienden y en qué orden.</li>',
+                    '<li>Cuando ponga «Tu turno», tócalos en el mismo orden.</li>',
+                    '<li>Cada nivel añade un color más.</li>',
+                    '</ul>'
+                ].join('')
+                : '<p>Repite la secuencia de colores.</p>',
+            buttons: { Jugar: { action: juego.empezar, btnClass: 'btn-green' } }
         });
+    },
+
+    // Arranca la partida preparada. La demo de los cuadrantes se ve una vez por sesión.
+    empezar: function () {
+        if (juego.estado !== 'espera') return;
+        if (juego._demoVista) {
+            juego.reproducirSecuencia();
+        } else {
+            juego._demoVista = true;
+            juego.demoCuadrantes(juego.reproducirSecuencia);
+        }
     },
 
     toque: function (color) {
         if (juego.estado !== 'turno') return;
 
         juego.Indice++;
-        var correcto = juego.Secuencia[juego.Indice] === color;
         juego.play(color);
         juego.encender(color, juego.msToque);
 
-        if (correcto) {
-            if (juego.Indice + 1 >= juego.Secuencia.length) {
-                juego.estado = 'acierto';
-                setTimeout(function () {
-                    juego.Secuencia.push(juego.Random3());
-                    juego.Indice = -1;
-                    juego.animarAcierto(function () {
-                        juego.reproducirSecuencia();
-                    });
-                }, 1000);
-            }
-        } else {
-            juego.estado = 'fin';
-            var nivel = juego.Secuencia.length;
-            if (nivel - 1 > juego.record) {
-                juego.record = nivel - 1;
-                juego.guardar('record', juego.record);
-            }
-            juego.play(9);
-
-            if (_isAndroid) juego.MostrarPubliInterstitial();
-
-            var reiniciar = function () {
-                var f = function () {
-                    if (juego.pausa || juego.enDialogo > 0) { setTimeout(f, 100); }
-                    else             { juego.iniciarSecuencia(false); }
-                };
-                setTimeout(f, 750);
-            };
-            var shareUrl = _isAndroid ? 'https://angelgf.com.es/angeldice/' : window.location.href;
-            var btns = { Aceptar: reiniciar };
-            if (navigator.share) {
-                btns = {
-                    Compartir: {
-                        btnClass: 'btn-share',
-                        action: function () {
-                            navigator.share({
-                                title: 'Angel Dice',
-                                text: '¡He llegado al nivel ' + (nivel - 1) + ' en Angel Dice! ¿Puedes superarme?',
-                                url: shareUrl
-                            }).catch(function () {});
-                            reiniciar();
-                        }
-                    },
-                    Aceptar: reiniciar
-                };
-            }
-            Modal.show({
-                title: '😵 Perdiste',
-                content: 'Perdiste en el <b>nivel ' + nivel + '</b>',
-                buttons: btns
-            });
+        if (juego.Secuencia[juego.Indice] !== color) {
+            juego.fallo();
+            return;
         }
+
+        if (juego.Indice + 1 >= juego.Secuencia.length) {
+            juego.estado = 'acierto';
+            setTimeout(function () {
+                juego.Secuencia.push(juego.Random3());
+                juego.Indice = -1;
+                juego.animarAcierto(function () {
+                    juego.reproducirSecuencia();
+                });
+            }, 1000);
+        }
+    },
+
+    // El jugador se ha equivocado: sonido de fallo, tres parpadeos del color que tocaba
+    // y diálogo de fin de partida. El resultado es siempre «niveles superados».
+    fallo: function () {
+        juego.estado = 'fin';
+        if (juego._tApagado) { clearTimeout(juego._tApagado); juego._tApagado = null; }
+
+        var correcto  = juego.Secuencia[juego.Indice];
+        var superados = juego.Secuencia.length - 1;
+        var esRecord  = superados > juego.record;
+        if (esRecord) {
+            juego.record = superados;
+            juego.guardar('record', juego.record);
+        }
+        juego.play(9);
+
+        var veces = 0;
+        function parpadeo() {
+            if (veces === 3) { juego.mostrarFin(superados, esRecord); return; }
+            veces++;
+            juego.draw(correcto);
+            setTimeout(function () {
+                juego.draw(-1);
+                setTimeout(parpadeo, 150);
+            }, 200);
+        }
+        // El color equivocado se queda encendido lo mismo que cualquier toque.
+        setTimeout(function () {
+            juego.draw(-1);
+            setTimeout(parpadeo, 150);
+        }, juego.msToque);
+    },
+
+    textoSuperados: function (n) {
+        if (n === 0) return 'No has superado ningún nivel';
+        return 'Has superado <b>' + n + '</b> ' + (n === 1 ? 'nivel' : 'niveles');
+    },
+
+    mostrarFin: function (superados, esRecord) {
+        var otra = function () { juego.reiniciar(superados); };
+        var btns = {};
+        if (navigator.share && superados > 0) {
+            btns.Compartir = {
+                btnClass: 'btn-share',
+                action: function () {
+                    // La partida siguiente espera a que se cierre la hoja de compartir.
+                    var envio = null;
+                    try {
+                        envio = navigator.share({
+                            title: 'Angel Dice',
+                            text: '¡He superado ' + superados + (superados === 1 ? ' nivel' : ' niveles') +
+                                  ' en Angel Dice! ¿Puedes superarme?',
+                            url: juego.urlPublica
+                        });
+                    } catch (e) { envio = null; }
+                    if (envio && envio.then) { envio.then(otra, otra); } else { otra(); }
+                }
+            };
+        }
+        btns['Jugar otra vez'] = { action: otra, btnClass: 'btn-green' };
+
+        Modal.show({
+            title: '😵 Fin de la partida',
+            content: juego.textoSuperados(superados) +
+                     (esRecord ? '<p class="nuevo-record">¡Nuevo récord!</p>' : ''),
+            buttons: btns
+        });
+    },
+
+    reiniciar: function (superados) {
+        juego.iniciarSecuencia(false);
     },
 
     Random3: function () {
